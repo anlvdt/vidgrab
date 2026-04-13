@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: vidgrab
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://vidgrab.onrender.com

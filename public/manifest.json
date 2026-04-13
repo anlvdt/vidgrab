@@ -1,0 +1,25 @@
+{
+  "name": "VidGrab — Video Downloader",
+  "short_name": "VidGrab",
+  "description": "Download videos from 1,800+ sites in 4K, 8K HDR, MP3. Free, fast, beautiful.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060e",
+  "theme_color": "#7c6cf0",
+  "orientation": "any",
+  "categories": ["utilities", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /api/download
+Disallow: /api/info
+Disallow: /api/cookies
+Disallow: /api/cobalt
+
+Sitemap: https://vidgrab.app/sitemap.xml
