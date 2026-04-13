@@ -163,6 +163,9 @@ const en = {
   // Footer
   footerMadeWith: "Made with",
   footerPoweredBy: "Powered by yt-dlp",
+  footerDisclaimer: "VidGrab does not host any copyrighted content. This tool only retrieves publicly available media from third-party platforms. Users are solely responsible for ensuring their downloads comply with applicable laws and the terms of service of each platform.",
+  footerTerms: "Terms of Use",
+  footerPrivacy: "Privacy",
 
   // Error
   networkError: "Network error. Please check your connection and try again.",
@@ -317,6 +320,9 @@ const vi: typeof en = {
 
   footerMadeWith: "Được tạo với",
   footerPoweredBy: "Sử dụng yt-dlp",
+  footerDisclaimer: "VidGrab không lưu trữ bất kỳ nội dung có bản quyền nào. Công cụ này chỉ truy xuất nội dung công khai từ các nền tảng bên thứ ba. Người dùng hoàn toàn chịu trách nhiệm đảm bảo việc tải xuống tuân thủ luật pháp hiện hành và điều khoản sử dụng của từng nền tảng.",
+  footerTerms: "Điều Khoản",
+  footerPrivacy: "Bảo Mật",
 
   networkError: "Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.",
   errorReportBtn: "Báo Lỗi",
