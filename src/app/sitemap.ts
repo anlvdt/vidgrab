@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://vidgrab.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://vidgrab.io.vn";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

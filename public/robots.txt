@@ -6,4 +6,4 @@ Disallow: /api/info
 Disallow: /api/cookies
 Disallow: /api/cobalt
 
-Sitemap: https://vidgrab.app/sitemap.xml
+Sitemap: https://vidgrab.io.vn/sitemap.xml

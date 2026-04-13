@@ -7,4 +7,4 @@ services:
     healthCheckPath: /
     envVars:
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://vidgrab.onrender.com
+        value: https://vidgrab.io.vn

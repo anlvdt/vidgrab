@@ -5,7 +5,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_SITE_URL=https://vidgrab.app
+      - NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
       # - YTDLP_PROXY=socks5://127.0.0.1:1080
       # - COBALT_API_URL=http://cobalt:9000
     restart: unless-stopped
