@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: Record<string, unknown>[];
   }
 }
 
@@ -23,33 +23,47 @@ export default function AdUnit({
   responsive = true,
   className = "",
 }: AdUnitProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
   const pushed = useRef(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (pushed.current) return;
-    if (typeof window.adsbygoogle === "undefined") return;
 
-    try {
-      window.adsbygoogle.push({});
-      pushed.current = true;
-    } catch { /* ad blocker */ }
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new MutationObserver(() => {
-      const ins = container.querySelector("ins.adsbygoogle");
-      if (ins && ins.getAttribute("data-ad-status") === "filled") {
-        setLoaded(true);
-        observer.disconnect();
+    // Wait for adsbygoogle script to load, then push
+    const tryPush = () => {
+      if (typeof window === "undefined") return;
+      if (!window.adsbygoogle) {
+        window.adsbygoogle = [];
       }
-    });
+      try {
+        window.adsbygoogle.push({});
+        pushed.current = true;
+      } catch {
+        // Ad blocker or script not loaded
+      }
+    };
 
-    observer.observe(container, { attributes: true, subtree: true, childList: true });
-    const timeout = setTimeout(() => observer.disconnect(), 5000);
-    return () => { observer.disconnect(); clearTimeout(timeout); };
+    // If script already loaded, push immediately
+    if (window.adsbygoogle) {
+      tryPush();
+      return;
+    }
+
+    // Otherwise wait for it
+    const interval = setInterval(() => {
+      if (window.adsbygoogle) {
+        tryPush();
+        clearInterval(interval);
+      }
+    }, 300);
+
+    // Give up after 10 seconds
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const styleMap: Record<string, React.CSSProperties> = {
@@ -59,35 +73,22 @@ export default function AdUnit({
     rectangle: { display: "inline-block", width: 336, height: 280 },
   };
 
-  if (!loaded) {
-    return (
-      <div ref={containerRef} className="hidden" aria-hidden="true">
-        <ins
-          className="adsbygoogle"
-          style={styleMap[format] || styleMap.auto}
-          data-ad-client={AD_CLIENT}
-          data-ad-slot={slot}
-          {...(responsive && format === "auto"
-            ? { "data-ad-format": "auto", "data-full-width-responsive": "true" }
-            : {})}
-        />
-      </div>
-    );
-  }
-
   return (
     <div
-      ref={containerRef}
-      className={`ad-container flex items-center justify-center overflow-hidden ${className}`}
+      className={`ad-container overflow-hidden min-h-[50px] ${className}`}
       aria-hidden="true"
     >
       <ins
+        ref={adRef}
         className="adsbygoogle"
         style={styleMap[format] || styleMap.auto}
         data-ad-client={AD_CLIENT}
         data-ad-slot={slot}
         {...(responsive && format === "auto"
-          ? { "data-ad-format": "auto", "data-full-width-responsive": "true" }
+          ? {
+              "data-ad-format": "auto",
+              "data-full-width-responsive": "true",
+            }
           : {})}
       />
     </div>

@@ -14,7 +14,6 @@ import Testimonials from "@/components/Testimonials";
 import LinkGuide from "@/components/LinkGuide";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
-import AdUnit from "@/components/AdUnit";
 import AuroraBackground from "@/components/AuroraBackground";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -136,13 +135,6 @@ export default function Home() {
       <main className="relative z-10 min-h-screen">
         <Hero onFetch={handleFetch} loading={loading} />
 
-        {/* === AD #1: Below Hero === */}
-        <AdUnit
-          slot="1111111111"
-          format="auto"
-          className="max-w-4xl mx-auto px-4 my-6"
-        />
-
         {/* Error */}
         {error && (
           <div className="max-w-2xl mx-auto px-4 mb-8">
@@ -225,11 +217,6 @@ export default function Home() {
             {/* yt-dlp format picker (when we have formats) */}
             {videoInfo.formats.length > 0 && (
               <>
-                <AdUnit
-                  slot="2222222222"
-                  format="auto"
-                  className="max-w-2xl mx-auto my-6"
-                />
                 <FormatPicker
                   formats={videoInfo.formats}
                   videoUrl={currentUrl}
@@ -239,11 +226,6 @@ export default function Home() {
               </>
             )}
 
-            <AdUnit
-              slot="3333333333"
-              format="auto"
-              className="max-w-2xl mx-auto mt-8"
-            />
           </section>
         )}
 
@@ -253,12 +235,6 @@ export default function Home() {
             <PlaylistQueue
               entries={videoInfo.playlistEntries}
               onDownloadStart={handleDownloadStart}
-            />
-
-            <AdUnit
-              slot="3333333333"
-              format="auto"
-              className="max-w-2xl mx-auto mt-8"
             />
           </section>
         )}
@@ -277,24 +253,10 @@ export default function Home() {
         {/* Stats */}
         <StatsCounter />
 
-        {/* === AD #4: Between Stats and Testimonials === */}
-        <AdUnit
-          slot="4444444444"
-          format="auto"
-          className="max-w-4xl mx-auto px-4 my-4"
-        />
-
         {/* Testimonials + CTA */}
         <Testimonials />
 
         <FAQ />
-
-        {/* === AD #5: Above Footer === */}
-        <AdUnit
-          slot="5555555555"
-          format="auto"
-          className="max-w-4xl mx-auto px-4 my-8"
-        />
 
         <Footer />
       </main>
