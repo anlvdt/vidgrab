@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { spawn } from "child_process";
-import { buildDownloadArgs } from "@/lib/ytdlp";
+import { spawnDownloadWithRetry, ensureYtdlpFresh } from "@/lib/ytdlp";
+import { downloadDirectStream } from "@/lib/chunked-download";
+import { downloadHlsStream, isHlsUrl } from "@/lib/hls";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -9,6 +10,7 @@ export async function GET(req: NextRequest) {
   const audioOnly = searchParams.get("audio") === "true";
   const title = searchParams.get("title") || "video";
   const proxy = searchParams.get("proxy") || undefined;
+  const direct = searchParams.get("direct") === "true";
 
   if (!url) {
     return new Response(JSON.stringify({ error: "Missing URL" }), {
@@ -20,34 +22,40 @@ export async function GET(req: NextRequest) {
   const safeTitle = title.replace(/[^a-zA-Z0-9_\-\s]/g, "").slice(0, 100);
   const ext = audioOnly ? "mp3" : "mp4";
 
-  const args = buildDownloadArgs(url, formatId, audioOnly, { proxy });
-  const proc = spawn("yt-dlp", args);
+  // Trigger background yt-dlp update check
+  ensureYtdlpFresh().catch(() => {});
 
-  const stream = new ReadableStream({
-    start(controller) {
-      proc.stdout.on("data", (chunk: Buffer) => {
-        controller.enqueue(chunk);
-      });
+  // ── Direct URL download (from scrapers) ──
+  if (direct) {
+    // HLS stream
+    if (isHlsUrl(url)) {
+      const referer = searchParams.get("referer") || "";
+      const stream = downloadHlsStream(url, referer);
 
-      proc.stderr.on("data", (data: Buffer) => {
-        console.error("yt-dlp stderr:", data.toString());
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "video/mp2t",
+          "Content-Disposition": `attachment; filename="${safeTitle}.ts"`,
+          "Transfer-Encoding": "chunked",
+        },
       });
+    }
 
-      proc.on("close", (code) => {
-        if (code !== 0) {
-          console.error(`yt-dlp exited with code ${code}`);
-        }
-        controller.close();
-      });
+    // Direct file download with chunked/parallel support
+    const { stream } = downloadDirectStream(url);
 
-      proc.on("error", (err) => {
-        console.error("yt-dlp process error:", err);
-        controller.error(err);
-      });
-    },
-    cancel() {
-      proc.kill("SIGTERM");
-    },
+    return new Response(stream, {
+      headers: {
+        "Content-Type": audioOnly ? "audio/mpeg" : "video/mp4",
+        "Content-Disposition": `attachment; filename="${safeTitle}.${ext}"`,
+        "Transfer-Encoding": "chunked",
+      },
+    });
+  }
+
+  // ── yt-dlp download with retry & player client rotation ──
+  const { stream } = spawnDownloadWithRetry(url, formatId, audioOnly, {
+    proxy,
   });
 
   return new Response(stream, {

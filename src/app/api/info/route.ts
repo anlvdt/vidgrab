@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideoInfo, getPlaylistInfo } from "@/lib/ytdlp";
+import { getVideoInfo, getPlaylistInfo, ensureYtdlpFresh } from "@/lib/ytdlp";
 import { scrapeVideo, detectScrapablePlatform } from "@/lib/scrapers";
 
 function parseError(stderr: string): string {
+  const lower = stderr.toLowerCase();
+  if (/http error 429|too many requests/i.test(lower))
+    return "Rate limited (429). Please wait a moment and try again.";
+  if (/http error 403|forbidden/i.test(lower))
+    return "Access denied (403). The video may be private or region-restricted.";
+  if (/nsig/i.test(lower))
+    return "Video extraction failed. Please try again.";
   if (/blocked|IP.*block/i.test(stderr))
     return "IP blocked. Trying alternative...";
   if (/login|cookie|authentication|sign in/i.test(stderr))
@@ -44,41 +51,56 @@ export async function POST(req: NextRequest) {
   try {
     const { url, playlist, proxy } = await req.json();
 
-    if (!url || typeof url !== "string" || !/^https?:\/\/.+/i.test(url.trim())) {
-      return NextResponse.json({ error: "Please provide a valid URL" }, { status: 400 });
+    if (
+      !url ||
+      typeof url !== "string" ||
+      !/^https?:\/\/.+/i.test(url.trim())
+    ) {
+      return NextResponse.json(
+        { error: "Please provide a valid URL" },
+        { status: 400 }
+      );
     }
+
+    // Trigger background yt-dlp freshness check
+    ensureYtdlpFresh().catch(() => {});
 
     const trimmedUrl = url.trim();
     const opts = { proxy: proxy || undefined };
     const isScrapable = !!detectScrapablePlatform(trimmedUrl);
 
     // ── Strategy A: For TikTok/Instagram/Twitter/Facebook ──
-    // Try scraper FIRST (fast, no cookies, no proxy needed)
-    // Then fall back to yt-dlp if scraper fails
     if (isScrapable && !playlist) {
-      // Step 1: Try scraper
+      // Step 1: Try scraper (fast, no cookies needed)
       try {
         const result = await scrapeVideo(trimmedUrl);
         if (result.ok && result.videoUrl) {
           return scraperResponse(result);
         }
-      } catch { /* scraper failed, try yt-dlp */ }
+      } catch {
+        /* scraper failed, try yt-dlp */
+      }
 
-      // Step 2: Try yt-dlp
+      // Step 2: Try yt-dlp (with retry & player client rotation)
       try {
         const info = await getVideoInfo(trimmedUrl, opts);
         return NextResponse.json(info);
-      } catch { /* yt-dlp also failed */ }
+      } catch {
+        /* yt-dlp also failed */
+      }
 
       // Step 3: Both failed
       return NextResponse.json(
-        { error: "Could not download from this platform. The video may be private or the link is invalid." },
+        {
+          error:
+            "Could not download from this platform. The video may be private or the link is invalid.",
+        },
         { status: 500 }
       );
     }
 
     // ── Strategy B: For YouTube and all other 1800+ sites ──
-    // yt-dlp is primary (best quality, format selection)
+    // yt-dlp with automatic retry & player client rotation
     try {
       if (playlist) {
         return NextResponse.json(await getPlaylistInfo(trimmedUrl, opts));
@@ -94,10 +116,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      return NextResponse.json({ error: parseError(stderr) }, { status: 500 });
+      return NextResponse.json(
+        { error: parseError(stderr) },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     console.error("Info fetch error:", error);
-    return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
+    return NextResponse.json(
+      { error: "An unexpected error occurred." },
+      { status: 500 }
+    );
   }
 }

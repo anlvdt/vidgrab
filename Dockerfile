@@ -27,10 +27,15 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
+# yt-dlp needs write access for self-update
+RUN chown nextjs:nodejs /usr/local/bin/yt-dlp
 
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "server.js"]
+CMD ["./start.sh"]
