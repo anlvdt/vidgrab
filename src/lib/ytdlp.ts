@@ -422,10 +422,13 @@ export function buildDownloadArgs(
       "0"
     );
   } else if (formatId) {
-    args.push("-f", `${formatId}+bestaudio/best`);
+    // Prefer m4a audio for better mpegts compatibility when piping to stdout
+    args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio/best`);
     args.push("--merge-output-format", "mp4");
   } else {
-    args.push("-f", "bestvideo+bestaudio/best");
+    // Prefer h264+aac (mp4+m4a) for best mpegts pipe compatibility
+    // vp9/opus in mpegts is poorly supported by browsers
+    args.push("-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best");
     args.push("--merge-output-format", "mp4");
   }
 
@@ -490,10 +493,10 @@ export function spawnDownloadWithRetry(
             "0"
           );
         } else if (formatId) {
-          args.push("-f", `${formatId}+bestaudio/best`);
+          args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio/best`);
           args.push("--merge-output-format", "mp4");
         } else {
-          args.push("-f", "bestvideo+bestaudio/best");
+          args.push("-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best");
           args.push("--merge-output-format", "mp4");
         }
 

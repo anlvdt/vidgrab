@@ -58,9 +58,14 @@ export async function GET(req: NextRequest) {
     proxy,
   });
 
+  // When yt-dlp merges video+audio via ffmpeg to stdout, it outputs mpegts
+  // (mp4 container requires seekable output, pipes are not seekable).
+  // Use application/octet-stream to force browser download instead of inline play.
+  const contentType = audioOnly ? "audio/mpeg" : "application/octet-stream";
+
   return new Response(stream, {
     headers: {
-      "Content-Type": audioOnly ? "audio/mpeg" : "video/mp4",
+      "Content-Type": contentType,
       "Content-Disposition": `attachment; filename="${safeTitle}.${ext}"`,
       "Transfer-Encoding": "chunked",
     },
