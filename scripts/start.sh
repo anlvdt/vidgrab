@@ -7,11 +7,9 @@ yt-dlp --version 2>/dev/null || echo "[startup] yt-dlp not found!"
 
 # Update yt-dlp in background (don't block server startup)
 (
-  echo "[startup] Updating yt-dlp to latest nightly..."
-  yt-dlp --update-to nightly 2>&1 || \
-    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-      -o /usr/local/bin/yt-dlp 2>/dev/null && \
-    chmod a+rx /usr/local/bin/yt-dlp
+  echo "[startup] Updating yt-dlp to latest..."
+  pip3 install --break-system-packages -U yt-dlp yt-dlp-ejs 2>&1 || \
+    echo "[startup] yt-dlp update failed, using existing version"
   echo "[startup] yt-dlp updated: $(yt-dlp --version 2>/dev/null)"
 ) &
 

@@ -1,7 +1,6 @@
 FROM node:22-alpine AS base
-RUN apk add --no-cache python3 ffmpeg curl \
-    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
+RUN apk add --no-cache python3 py3-pip ffmpeg curl \
+    && pip3 install --break-system-packages yt-dlp yt-dlp-ejs
 
 # Dependencies
 FROM base AS deps
@@ -30,8 +29,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# yt-dlp needs write access for self-update
-RUN chown nextjs:nodejs /usr/local/bin/yt-dlp
+# yt-dlp needs write access for pip self-update
+RUN chown -R nextjs:nodejs /usr/lib/python3* 2>/dev/null || true \
+    && chown nextjs:nodejs /usr/local/bin/yt-dlp 2>/dev/null || true
 
 USER nextjs
 EXPOSE 3000
