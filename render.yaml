@@ -15,6 +15,7 @@ services:
   # Cobalt API for YouTube fallback (private service)
   - type: pserv
     name: cobalt
-    runtime: docker
-    dockerImage: ghcr.io/imputnet/cobalt:latest
+    runtime: image
+    image:
+      url: ghcr.io/imputnet/cobalt:latest
     plan: free
