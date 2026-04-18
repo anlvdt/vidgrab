@@ -8,13 +8,15 @@ const execFileAsync = promisify(execFile);
 // ─── Constants ───────────────────────────────────────────────
 const COOKIES_PATH = join(process.cwd(), "cookies.txt");
 const CHROME_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
 /** YouTube player clients to rotate through on failure */
 const YT_PLAYER_CLIENTS = [
+  "youtube:player_client=ios,web_creator",
+  "youtube:player_client=mweb,android",
+  "youtube:player_client=tv,tv_embedded",
+  "youtube:player_client=mediaconnect",
   undefined, // default (no --extractor-args)
-  "youtube:player_client=default,mweb",
-  "youtube:player_client=ios",
 ];
 
 // ─── Rate Limiter (inspired by OmniGet) ─────────────────────
@@ -141,12 +143,14 @@ function baseArgs(opts?: DownloadOptions): string[] {
     args.push("--proxy", proxy);
   }
 
-  args.push("--retries", "3");
-  args.push("--extractor-retries", "2");
-  args.push("--socket-timeout", "15");
+  args.push("--retries", "5");
+  args.push("--extractor-retries", "3");
+  args.push("--socket-timeout", "30");
   args.push("--user-agent", CHROME_UA);
-  args.push("--referer", "https://www.google.com/");
+  args.push("--referer", "https://www.youtube.com/");
   args.push("--no-check-certificates");
+  args.push("--force-ipv4");
+  args.push("--geo-bypass");
 
   return args;
 }
