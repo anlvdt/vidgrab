@@ -1,4 +1,5 @@
 services:
+  # Main web app
   - type: web
     name: vidgrab
     runtime: docker
@@ -8,3 +9,12 @@ services:
     envVars:
       - key: NEXT_PUBLIC_SITE_URL
         value: https://vidgrab.io.vn
+      - key: COBALT_API_URL
+        value: http://cobalt:9000
+
+  # Cobalt API for YouTube fallback (private service)
+  - type: pserv
+    name: cobalt
+    runtime: docker
+    dockerImage: ghcr.io/imputnet/cobalt:10
+    plan: free
