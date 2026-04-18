@@ -14,7 +14,7 @@ services:
 
   # Cobalt for YouTube/TikTok/Instagram fallback
   cobalt:
-    image: ghcr.io/imputnet/cobalt:10
+    image: ghcr.io/imputnet/cobalt:latest
     container_name: cobalt
     environment:
       - API_URL=http://cobalt:9000

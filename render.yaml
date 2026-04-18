@@ -16,5 +16,5 @@ services:
   - type: pserv
     name: cobalt
     runtime: docker
-    dockerImage: ghcr.io/imputnet/cobalt:10
+    dockerImage: ghcr.io/imputnet/cobalt:latest
     plan: free
