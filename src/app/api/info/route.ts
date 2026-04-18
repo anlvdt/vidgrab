@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVideoInfo, getPlaylistInfo, ensureYtdlpFresh } from "@/lib/ytdlp";
 import { scrapeVideo, detectScrapablePlatform } from "@/lib/scrapers";
+import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
 
 function parseError(stderr: string): string {
   const lower = stderr.toLowerCase();
@@ -114,6 +115,36 @@ export async function POST(req: NextRequest) {
           { error: "yt-dlp not found. Install: brew install yt-dlp" },
           { status: 500 }
         );
+      }
+
+      // Fallback to Cobalt for YouTube when yt-dlp fails with auth/rate-limit
+      const isRetryableWithCobalt =
+        /login|cookie|authentication|sign in|http error 429|http error 403|nsig/i.test(stderr);
+
+      if (isRetryableWithCobalt && isCobaltAvailable() && !playlist) {
+        try {
+          const cobaltResult = await cobaltDownload(trimmedUrl);
+          if (cobaltResult.ok && cobaltResult.url) {
+            return NextResponse.json({
+              id: "cobalt",
+              title: "Video",
+              thumbnail: "",
+              duration: 0,
+              durationString: "",
+              uploader: "",
+              viewCount: 0,
+              uploadDate: "",
+              description: "",
+              formats: [],
+              isPlaylist: false,
+              cobaltUrl: cobaltResult.url,
+              cobaltAudioUrl: cobaltResult.audioUrl || "",
+              cobaltPicker: cobaltResult.picker,
+            });
+          }
+        } catch {
+          /* Cobalt also failed */
+        }
       }
 
       return NextResponse.json(

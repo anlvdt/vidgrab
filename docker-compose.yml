@@ -6,14 +6,16 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
+      - COBALT_API_URL=http://cobalt:9000
       # - YTDLP_PROXY=socks5://127.0.0.1:1080
-      # - COBALT_API_URL=http://cobalt:9000
+    volumes:
+      - ./cookies.txt:/app/cookies.txt:ro
     restart: unless-stopped
 
-  # Optional: Cobalt for TikTok/Instagram fallback
-  # cobalt:
-  #   image: ghcr.io/imputnet/cobalt
-  #   container_name: cobalt
-  #   ports:
-  #     - "9000:9000"
-  #   restart: unless-stopped
+  # Cobalt for YouTube/TikTok/Instagram fallback
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:10
+    container_name: cobalt
+    environment:
+      - API_URL=http://cobalt:9000
+    restart: unless-stopped
