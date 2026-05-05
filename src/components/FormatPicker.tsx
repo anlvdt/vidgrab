@@ -84,6 +84,13 @@ export default function FormatPicker({
   const triggerDownload = useCallback(
     (params: URLSearchParams) => {
       onDownloadStart?.();
+      // Add SponsorBlock setting from localStorage (Arroxy feature)
+      const sponsorBlock = typeof window !== "undefined"
+        ? localStorage.getItem("vidgrab-sponsorblock") || "off"
+        : "off";
+      if (sponsorBlock !== "off") {
+        params.set("sponsorblock", sponsorBlock);
+      }
       window.open(`/api/download?${params.toString()}`, "_blank");
     },
     [onDownloadStart]

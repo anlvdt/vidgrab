@@ -1,7 +1,28 @@
+/**
+ * yt-dlp integration with Arroxy-inspired retry strategy.
+ *
+ * Key improvements from Arroxy (https://github.com/antonio-orionus/Arroxy):
+ * 1. 3-attempt retry ladder: primary → alternative → fallback player clients
+ * 2. Smart player client selection (skip PoT-demanding clients)
+ * 3. URL sanitization (strip tracking params)
+ * 4. Better error classification and retry logic
+ * 5. Deterministic retry instead of random rotation
+ */
+
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
+import { sanitizeUrl } from "./url-sanitizer";
+import {
+  getExtractorArgsForAttempt,
+  classifyStderr,
+  isBotBlockError,
+  isRateLimitError,
+  isNsigError,
+  PLAYER_CLIENT_FALLBACK,
+  type StderrSignal,
+} from "./po-token";
 
 const execFileAsync = promisify(execFile);
 
@@ -10,16 +31,18 @@ const COOKIES_PATH = join(process.cwd(), "cookies.txt");
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
-/** YouTube player clients to rotate through on failure */
-const YT_PLAYER_CLIENTS = [
-  "youtube:player_client=ios,web_creator",
-  "youtube:player_client=mweb,android",
-  "youtube:player_client=tv,tv_embedded",
-  "youtube:player_client=mediaconnect",
-  undefined, // default (no --extractor-args)
-];
+/**
+ * Arroxy-inspired retry ladder for YouTube player clients.
+ *
+ * Unlike the original random rotation, this uses a deterministic strategy:
+ * - Attempt 0: default,-web,-web_safari (Arroxy's PLAYER_CLIENT_FALLBACK)
+ *   Skips the clients that most often trigger bot detection.
+ * - Attempt 1: ios,web_creator (alternative clients with less bot detection)
+ * - Attempt 2: mweb,android (mobile clients, usually least restricted)
+ */
+const MAX_RETRY_ATTEMPTS = 3;
 
-// ─── Rate Limiter (inspired by OmniGet) ─────────────────────
+// ─── Rate Limiter ────────────────────────────────────────────
 class RateLimiter {
   private queue: Array<() => void> = [];
   private running = 0;
@@ -128,6 +151,8 @@ export interface PlaylistEntry {
 export interface DownloadOptions {
   proxy?: string;
   cookies?: boolean;
+  /** SponsorBlock mode: "mark" (chapter markers) or "remove" (cut segments) */
+  sponsorBlock?: string;
 }
 
 // ─── Base Args Builder ───────────────────────────────────────
@@ -220,18 +245,25 @@ function parseFormats(data: any): VideoFormat[] {
     });
 }
 
-// ─── getVideoInfo with Player Client Rotation & Rate Limiting ─
+// ─── Retry Delay Calculator (from Arroxy) ────────────────────
+function getRetryDelay(attempt: number, signal: StderrSignal): number {
+  if (signal === 'rateLimit') return 5000 + attempt * 2000; // 5s, 7s, 9s
+  if (signal === 'botBlock') return 1000 + attempt * 1000;  // 1s, 2s, 3s
+  return 1000; // Default 1s
+}
+
+// ─── getVideoInfo with Arroxy-style Retry Ladder ─────────────
 export async function getVideoInfo(
   url: string,
   opts?: DownloadOptions
 ): Promise<VideoInfo> {
-  const isYT = isYouTubeUrl(url);
-  const clients = isYT ? YT_PLAYER_CLIENTS : [undefined];
+  // Sanitize URL (strip tracking params, unwrap redirects)
+  const cleanUrl = sanitizeUrl(url);
+  const isYT = isYouTubeUrl(cleanUrl);
   let lastError = "";
+  let lastSignal: StderrSignal = null;
 
-  for (let attempt = 0; attempt < clients.length; attempt++) {
-    const client = clients[attempt];
-
+  for (let attempt = 0; attempt < (isYT ? MAX_RETRY_ATTEMPTS : 1); attempt++) {
     // Rate limit YouTube requests
     if (isYT) {
       await ytRateLimiter.acquire();
@@ -245,11 +277,15 @@ export async function getVideoInfo(
         "--skip-download",
       ];
 
-      if (client) {
-        args.push("--extractor-args", client);
+      // Arroxy-style: use deterministic player client ladder
+      if (isYT) {
+        const extractorArgs = getExtractorArgsForAttempt(attempt);
+        if (extractorArgs) {
+          args.push("--extractor-args", extractorArgs);
+        }
       }
 
-      args.push(url);
+      args.push(cleanUrl);
 
       const { stdout } = await execFileAsync("yt-dlp", args, {
         timeout: 45000,
@@ -272,31 +308,31 @@ export async function getVideoInfo(
         isPlaylist: false,
       };
     } catch (err: any) {
-      const stderr = (err.stderr || err.message || "").toLowerCase();
-      lastError = err.stderr || err.message || "";
+      const stderr = err.stderr || err.message || "";
+      lastError = stderr;
 
-      if (stderr.includes("http error 429")) {
+      // Classify the error using Arroxy's signal system
+      lastSignal = classifyStderr(stderr);
+
+      if (lastSignal === 'rateLimit') {
         trackRateLimit();
       }
 
-      // Determine if we should retry with next player client
+      // Determine if we should retry (Arroxy's logic)
       const isRetryable =
         isYT &&
-        attempt < clients.length - 1 &&
-        (stderr.includes("requested format") ||
-          stderr.includes("not available") ||
-          stderr.includes("http error 403") ||
-          stderr.includes("http error 429") ||
-          stderr.includes("nsig"));
+        attempt < MAX_RETRY_ATTEMPTS - 1 &&
+        (lastSignal === 'botBlock' ||
+          lastSignal === 'rateLimit' ||
+          lastSignal === 'nsig' ||
+          lastSignal === 'formatUnavailable');
 
       if (isRetryable) {
+        const delay = getRetryDelay(attempt, lastSignal);
         console.warn(
-          `[yt-dlp] info attempt ${attempt + 1}/${clients.length} failed, retrying with next player client`
+          `[yt-dlp] info attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS} failed (${lastSignal}), retrying in ${delay}ms with next player client`
         );
-        // Wait before retry on 429
-        if (stderr.includes("http error 429")) {
-          await sleep(5000);
-        }
+        await sleep(delay);
         continue;
       }
 
@@ -304,6 +340,7 @@ export async function getVideoInfo(
       const error = new Error(err.message || "yt-dlp failed");
       (error as any).stderr = lastError;
       (error as any).code = err.code;
+      (error as any).signal = lastSignal;
       throw error;
     } finally {
       if (isYT) {
@@ -315,6 +352,7 @@ export async function getVideoInfo(
   // All attempts exhausted
   const error = new Error("yt-dlp failed after all retry attempts");
   (error as any).stderr = lastError;
+  (error as any).signal = lastSignal;
   throw error;
 }
 
@@ -323,7 +361,8 @@ export async function getPlaylistInfo(
   url: string,
   opts?: DownloadOptions
 ): Promise<VideoInfo> {
-  const isYT = isYouTubeUrl(url);
+  const cleanUrl = sanitizeUrl(url);
+  const isYT = isYouTubeUrl(cleanUrl);
 
   if (isYT) {
     await ytRateLimiter.acquire();
@@ -340,11 +379,12 @@ export async function getPlaylistInfo(
       "3",
     ];
 
+    // Use Arroxy's fallback client for playlists (most reliable)
     if (isYT) {
-      args.push("--extractor-args", "youtube:player_client=default");
+      args.push("--extractor-args", PLAYER_CLIENT_FALLBACK);
     }
 
-    args.push(url);
+    args.push(cleanUrl);
 
     const { stdout } = await execFileAsync("yt-dlp", args, {
       timeout: 120000,
@@ -398,21 +438,23 @@ export async function getPlaylistInfo(
   }
 }
 
-// ─── Download with Retry & Player Client Rotation ────────────
+// ─── Download with Arroxy-style 3-Attempt Retry Ladder ───────
 export function buildDownloadArgs(
   url: string,
   formatId?: string,
   audioOnly?: boolean,
   opts?: DownloadOptions
 ): string[] {
+  const cleanUrl = sanitizeUrl(url);
   const args = baseArgs(opts);
 
-  // Add concurrent fragment downloading
+  // Adaptive fragment count based on rate limit history
   const frags = getRateLimitCount() >= 2 ? 2 : getRateLimitCount() > 0 ? 4 : 8;
   args.push("-N", String(frags));
 
-  if (isYouTubeUrl(url)) {
-    args.push("--extractor-args", "youtube:player_client=default");
+  if (isYouTubeUrl(cleanUrl)) {
+    // Use Arroxy's primary strategy: skip PoT-demanding clients
+    args.push("--extractor-args", PLAYER_CLIENT_FALLBACK);
     args.push("--throttled-rate", "100K");
   }
 
@@ -426,24 +468,36 @@ export function buildDownloadArgs(
       "0"
     );
   } else if (formatId) {
-    // Prefer m4a audio for better mpegts compatibility when piping to stdout
     args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio/best`);
     args.push("--merge-output-format", "mp4");
   } else {
-    // Prefer h264+aac (mp4+m4a) for best mpegts pipe compatibility
-    // vp9/opus in mpegts is poorly supported by browsers
     args.push("-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best");
     args.push("--merge-output-format", "mp4");
   }
 
-  args.push("-o", "-", url);
+  // SponsorBlock support (from Arroxy)
+  if (opts?.sponsorBlock && isYouTubeUrl(cleanUrl)) {
+    const categories = "sponsor,selfpromo,interaction,intro,outro";
+    if (opts.sponsorBlock === "remove") {
+      args.push("--sponsorblock-remove", categories);
+    } else {
+      args.push("--sponsorblock-mark", categories);
+    }
+  }
+
+  args.push("-o", "-", cleanUrl);
   return args;
 }
 
 /**
- * Spawn yt-dlp download with automatic retry on failure.
- * Rotates player clients for YouTube on 429/403/nsig errors.
- * Returns a ReadableStream for streaming to client.
+ * Spawn yt-dlp download with Arroxy-inspired 3-attempt retry ladder.
+ *
+ * Retry strategy (from Arroxy):
+ *   Attempt 0: player_client=default,-web,-web_safari (skip PoT clients)
+ *   Attempt 1: player_client=ios,web_creator (alternative)
+ *   Attempt 2: player_client=mweb,android (mobile fallback)
+ *
+ * Only retries on bot-block, 429, or nsig errors.
  */
 export function spawnDownloadWithRetry(
   url: string,
@@ -451,8 +505,8 @@ export function spawnDownloadWithRetry(
   audioOnly?: boolean,
   opts?: DownloadOptions
 ): { stream: ReadableStream<Uint8Array>; abort: () => void } {
-  const isYT = isYouTubeUrl(url);
-  const maxAttempts = isYT ? 3 : 1;
+  const cleanUrl = sanitizeUrl(url);
+  const isYT = isYouTubeUrl(cleanUrl);
   let currentAttempt = 0;
   let currentProc: ReturnType<typeof spawn> | null = null;
   let aborted = false;
@@ -466,6 +520,8 @@ export function spawnDownloadWithRetry(
         }
 
         const args = baseArgs(opts);
+
+        // Adaptive fragment count
         const frags =
           getRateLimitCount() >= 2
             ? 2
@@ -474,15 +530,11 @@ export function spawnDownloadWithRetry(
               : 8;
         args.push("-N", String(frags));
 
-        // Rotate player client on retry
+        // Arroxy-style deterministic player client ladder
         if (isYT) {
-          const clientIdx = Math.min(
-            currentAttempt,
-            YT_PLAYER_CLIENTS.length - 1
-          );
-          const client = YT_PLAYER_CLIENTS[clientIdx];
-          if (client) {
-            args.push("--extractor-args", client);
+          const extractorArgs = getExtractorArgsForAttempt(currentAttempt);
+          if (extractorArgs) {
+            args.push("--extractor-args", extractorArgs);
           }
           args.push("--throttled-rate", "100K");
         }
@@ -504,7 +556,17 @@ export function spawnDownloadWithRetry(
           args.push("--merge-output-format", "mp4");
         }
 
-        args.push("-o", "-", url);
+        // SponsorBlock support (from Arroxy)
+        if (opts?.sponsorBlock && isYT) {
+          const categories = "sponsor,selfpromo,interaction,intro,outro";
+          if (opts.sponsorBlock === "remove") {
+            args.push("--sponsorblock-remove", categories);
+          } else {
+            args.push("--sponsorblock-mark", categories);
+          }
+        }
+
+        args.push("-o", "-", cleanUrl);
 
         const proc = spawn("yt-dlp", args);
         currentProc = proc;
@@ -528,30 +590,30 @@ export function spawnDownloadWithRetry(
             return;
           }
 
-          // Check if retryable
-          const stderrLower = stderrBuf.toLowerCase();
-          if (stderrLower.includes("http error 429")) {
+          // Classify error using Arroxy's signal system
+          const signal = classifyStderr(stderrBuf);
+
+          if (signal === 'rateLimit') {
             trackRateLimit();
           }
 
+          // Arroxy-style retry: only on bot-block, rate-limit, or nsig
           const isRetryable =
             isYT &&
-            currentAttempt < maxAttempts - 1 &&
-            (stderrLower.includes("http error 429") ||
-              stderrLower.includes("http error 403") ||
-              stderrLower.includes("nsig") ||
-              stderrLower.includes("requested format") ||
-              stderrLower.includes("not available"));
+            currentAttempt < MAX_RETRY_ATTEMPTS - 1 &&
+            (signal === 'botBlock' ||
+              signal === 'rateLimit' ||
+              signal === 'nsig');
 
           if (isRetryable) {
             currentAttempt++;
+            const delay = getRetryDelay(currentAttempt - 1, signal);
             console.warn(
-              `[yt-dlp] download attempt ${currentAttempt}/${maxAttempts} failed, retrying...`
+              `[yt-dlp] download attempt ${currentAttempt}/${MAX_RETRY_ATTEMPTS} failed (${signal}), retrying in ${delay}ms`
             );
-            const waitMs = stderrLower.includes("429") ? 5000 : 1000;
-            setTimeout(tryDownload, waitMs);
+            setTimeout(tryDownload, delay);
           } else {
-            console.error(`yt-dlp failed (code ${code}):`, stderrBuf.slice(-500));
+            console.error(`yt-dlp failed (code ${code}, signal: ${signal}):`, stderrBuf.slice(-500));
             controller.close();
           }
         });

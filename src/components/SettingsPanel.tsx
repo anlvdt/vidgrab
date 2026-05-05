@@ -19,11 +19,12 @@ import { useI18n } from "@/lib/i18n";
 interface SettingsState {
   proxyUrl: string;
   cookiesExist: boolean;
+  sponsorBlock: string; // "off" | "mark" | "remove"
 }
 
 export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<SettingsState>({ proxyUrl: "", cookiesExist: false });
+  const [state, setState] = useState<SettingsState>({ proxyUrl: "", cookiesExist: false, sponsorBlock: "off" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [showCookieGuide, setShowCookieGuide] = useState(false);
@@ -33,7 +34,11 @@ export default function SettingsPanel() {
 
   useEffect(() => {
     if (!open) return;
-    setState((s) => ({ ...s, proxyUrl: localStorage.getItem("vidgrab-proxy") || "" }));
+    setState((s) => ({
+      ...s,
+      proxyUrl: localStorage.getItem("vidgrab-proxy") || "",
+      sponsorBlock: localStorage.getItem("vidgrab-sponsorblock") || "off",
+    }));
     fetch("/api/cookies").then((r) => r.json()).then((d) => {
       setState((s) => ({ ...s, cookiesExist: d.exists }));
     }).catch(() => {});
@@ -42,6 +47,13 @@ export default function SettingsPanel() {
   const saveProxy = () => {
     localStorage.setItem("vidgrab-proxy", state.proxyUrl);
     setMessage({ type: "ok", text: vi ? "Đã lưu proxy" : "Proxy saved" });
+    setTimeout(() => setMessage(null), 2000);
+  };
+
+  const saveSponsorBlock = (mode: string) => {
+    setState((s) => ({ ...s, sponsorBlock: mode }));
+    localStorage.setItem("vidgrab-sponsorblock", mode);
+    setMessage({ type: "ok", text: vi ? "Đã lưu SponsorBlock" : "SponsorBlock saved" });
     setTimeout(() => setMessage(null), 2000);
   };
 
@@ -132,6 +144,45 @@ export default function SettingsPanel() {
                   {vi ? "Lưu" : "Save"}
                 </button>
               </div>
+            </div>
+
+            {/* SponsorBlock (from Arroxy) */}
+            <div className="mb-5">
+              <label className="flex items-center gap-2 text-sm font-medium mb-2">
+                <Shield className="w-4 h-4 text-[var(--accent-light)]" />
+                SponsorBlock
+              </label>
+              <p className="text-xs text-[var(--text-muted)] mb-2">
+                {vi
+                  ? "Tự động bỏ qua hoặc đánh dấu quảng cáo, intro, outro trong video YouTube."
+                  : "Auto-skip or chapter-mark sponsors, intros, outros in YouTube videos."}
+              </p>
+              <div className="flex gap-2">
+                {[
+                  { value: "off", label: vi ? "Tắt" : "Off" },
+                  { value: "mark", label: vi ? "Đánh dấu" : "Mark" },
+                  { value: "remove", label: vi ? "Cắt bỏ" : "Remove" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => saveSponsorBlock(opt.value)}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      state.sponsorBlock === opt.value
+                        ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
+                        : "glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--text-muted)] mt-1.5">
+                {state.sponsorBlock === "mark"
+                  ? (vi ? "Thêm chapter markers cho các đoạn sponsor" : "Adds chapter markers for sponsor segments")
+                  : state.sponsorBlock === "remove"
+                    ? (vi ? "Cắt bỏ hoàn toàn các đoạn sponsor khỏi video" : "Completely removes sponsor segments from video")
+                    : (vi ? "Không xử lý SponsorBlock" : "No SponsorBlock processing")}
+              </p>
             </div>
 
             {/* Cookies */}

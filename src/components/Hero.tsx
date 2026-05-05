@@ -8,6 +8,7 @@ import TypingHeadline from "./TypingHeadline";
 import PlatformBadge from "./PlatformBadge";
 import { TOTAL_SUPPORTED_SITES } from "@/lib/platforms";
 import { useI18n } from "@/lib/i18n";
+import { sanitizeUrl } from "@/lib/url-sanitizer";
 
 interface HeroProps {
   onFetch: (url: string, isPlaylist: boolean) => void;
@@ -22,9 +23,26 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   const { t } = useI18n();
 
   const handleFocus = () => {
-    if (!url.trim()) setPasteHint(true);
+    if (!url.trim()) {
+      setPasteHint(true);
+      // Arroxy-style: auto-detect YouTube URL from clipboard on focus
+      autoDetectClipboard();
+    }
   };
   const handleBlur = () => setPasteHint(false);
+
+  // Arroxy's ClipboardWatcher: auto-detect video URLs when input is focused
+  const autoDetectClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|reddit\.com)/i.test(text.trim())) {
+        setUrl(text.trim());
+        setPasteHint(false);
+      }
+    } catch {
+      // Clipboard permission denied — silent fail
+    }
+  };
 
   const handleSmartPaste = async () => {
     try {
@@ -42,7 +60,10 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url.trim()) {
-      onFetch(url.trim(), playlistMode);
+      // Clean URL before submitting (Arroxy's auto-clean feature)
+      const cleanedUrl = sanitizeUrl(url.trim());
+      setUrl(cleanedUrl);
+      onFetch(cleanedUrl, playlistMode);
     }
   };
 

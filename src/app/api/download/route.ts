@@ -2,22 +2,26 @@ import { NextRequest } from "next/server";
 import { spawnDownloadWithRetry, ensureYtdlpFresh } from "@/lib/ytdlp";
 import { downloadDirectStream } from "@/lib/chunked-download";
 import { downloadHlsStream, isHlsUrl } from "@/lib/hls";
+import { sanitizeUrl } from "@/lib/url-sanitizer";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+  const rawUrl = searchParams.get("url");
   const formatId = searchParams.get("format") || undefined;
   const audioOnly = searchParams.get("audio") === "true";
   const title = searchParams.get("title") || "video";
   const proxy = searchParams.get("proxy") || undefined;
   const direct = searchParams.get("direct") === "true";
 
-  if (!url) {
+  if (!rawUrl) {
     return new Response(JSON.stringify({ error: "Missing URL" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // Sanitize URL: strip tracking params, unwrap redirects (Arroxy feature)
+  const url = sanitizeUrl(rawUrl);
 
   const safeTitle = title.replace(/[^a-zA-Z0-9_\-\s]/g, "").slice(0, 100);
   const ext = audioOnly ? "mp3" : "mp4";
@@ -54,8 +58,12 @@ export async function GET(req: NextRequest) {
   }
 
   // ── yt-dlp download with retry & player client rotation ──
+  // SponsorBlock support (from Arroxy) — skip/mark sponsors in YouTube videos
+  const sponsorBlock = searchParams.get("sponsorblock");
+
   const { stream } = spawnDownloadWithRetry(url, formatId, audioOnly, {
     proxy,
+    sponsorBlock: sponsorBlock || undefined,
   });
 
   // When yt-dlp merges video+audio via ffmpeg to stdout, it outputs mpegts

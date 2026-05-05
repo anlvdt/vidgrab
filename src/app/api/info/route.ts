@@ -2,31 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVideoInfo, getPlaylistInfo, ensureYtdlpFresh } from "@/lib/ytdlp";
 import { scrapeVideo, detectScrapablePlatform } from "@/lib/scrapers";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
+import { sanitizeUrl } from "@/lib/url-sanitizer";
+import { classifyStderr, type StderrSignal } from "@/lib/po-token";
 
+/**
+ * Parse yt-dlp stderr into user-friendly error messages.
+ * Uses Arroxy's signal classification for more accurate error handling.
+ */
 function parseError(stderr: string): string {
+  const signal = classifyStderr(stderr);
+
+  switch (signal) {
+    case 'rateLimit':
+      return "Rate limited (429). Please wait a moment and try again.";
+    case 'botBlock':
+      return "Bot detection triggered. Retrying with alternative method...";
+    case 'nsig':
+      return "Video extraction failed (signature issue). Please try again.";
+    case 'networkError':
+      return "Network error. Please check your connection and try again.";
+    case 'geoRestricted':
+      return "Not available in your region.";
+    case 'private':
+      return "This video is private or restricted.";
+    case 'notFound':
+      return "Video not found or deleted.";
+    case 'formatUnavailable':
+      return "Requested format not available. Try a different quality.";
+    default:
+      break;
+  }
+
+  // Fallback to pattern matching for cases not covered by signal classification
   const lower = stderr.toLowerCase();
-  if (/http error 429|too many requests/i.test(lower))
-    return "Rate limited (429). Please wait a moment and try again.";
-  if (/http error 403|forbidden/i.test(lower))
-    return "Access denied (403). The video may be private or region-restricted.";
-  if (/nsig/i.test(lower))
-    return "Video extraction failed. Please try again.";
   if (/blocked|IP.*block/i.test(stderr))
     return "IP blocked. Trying alternative...";
   if (/login|cookie|authentication|sign in/i.test(stderr))
     return "Login required. Trying alternative...";
-  if (/unavailable|not found|404|does not exist/i.test(stderr))
-    return "Video not found or deleted.";
-  if (/geo.?restrict|not available in your country/i.test(stderr))
-    return "Not available in your region.";
-  if (/private|restricted/i.test(stderr))
-    return "This video is private or restricted.";
   if (/no video|no media|empty.*response/i.test(stderr))
     return "No downloadable video found.";
   if (/unsupported url|no.*extractor/i.test(stderr))
     return "This URL is not supported.";
-  if (/timed? ?out|timeout/i.test(stderr))
-    return "Request timed out. Try again.";
   return "Failed to fetch video info.";
 }
 
@@ -66,7 +82,8 @@ export async function POST(req: NextRequest) {
     // Trigger background yt-dlp freshness check
     ensureYtdlpFresh().catch(() => {});
 
-    const trimmedUrl = url.trim();
+    // Sanitize URL: strip tracking params, unwrap redirects (Arroxy feature)
+    const trimmedUrl = sanitizeUrl(url);
     const opts = { proxy: proxy || undefined };
     const isScrapable = !!detectScrapablePlatform(trimmedUrl);
 
@@ -118,8 +135,13 @@ export async function POST(req: NextRequest) {
       }
 
       // Fallback to Cobalt for YouTube when yt-dlp fails with auth/rate-limit
+      // Use Arroxy's signal classification for more accurate detection
+      const ytSignal = classifyStderr(stderr);
       const isRetryableWithCobalt =
-        /login|cookie|authentication|sign in|http error 429|http error 403|nsig/i.test(stderr);
+        ytSignal === 'botBlock' ||
+        ytSignal === 'rateLimit' ||
+        ytSignal === 'nsig' ||
+        /login|cookie|authentication|sign in/i.test(stderr);
 
       if (isRetryableWithCobalt && isCobaltAvailable() && !playlist) {
         try {
