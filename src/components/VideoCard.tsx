@@ -9,6 +9,8 @@ interface VideoCardProps {
   duration: string;
   uploader: string;
   viewCount: number;
+  /** Hide the thumbnail when a live preview is already shown above the card. */
+  hideThumbnail?: boolean;
 }
 
 function formatViews(count: number, label: string): string {
@@ -23,25 +25,28 @@ export default function VideoCard({
   duration,
   uploader,
   viewCount,
+  hideThumbnail = false,
 }: VideoCardProps) {
   const { t } = useI18n();
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden max-w-2xl mx-auto">
-      <div className="relative group">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnail}
-          alt={title}
-          className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        {duration && (
-          <span className="absolute bottom-3 right-3 glass text-white text-xs font-mono px-2.5 py-1 rounded-lg">
-            {duration}
-          </span>
-        )}
-      </div>
+      {!hideThumbnail && (
+        <div className="relative group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumbnail}
+            alt={title}
+            className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {duration && (
+            <span className="absolute bottom-3 right-3 glass text-white text-xs font-mono px-2.5 py-1 rounded-lg">
+              {duration}
+            </span>
+          )}
+        </div>
+      )}
       <div className="p-5">
         <h3 className="font-semibold text-lg leading-snug mb-3 line-clamp-2">
           {title}

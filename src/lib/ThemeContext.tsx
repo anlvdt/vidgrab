@@ -21,31 +21,19 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
     const stored = localStorage.getItem("vidgrab-theme") as Theme | null;
-    if (stored) {
-      setTheme(stored);
-    } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-      setTheme("light");
-    }
-    setMounted(true);
-  }, []);
+    if (stored === "dark" || stored === "light") return stored;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  });
 
   useEffect(() => {
-    if (!mounted) return;
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("vidgrab-theme", theme);
-  }, [theme, mounted]);
+  }, [theme]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
-
-  // Prevent flash of wrong theme
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>

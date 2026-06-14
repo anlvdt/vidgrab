@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap, Heart, ExternalLink, Shield } from "lucide-react";
+import { Zap, Heart, Shield } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 export default function Footer() {

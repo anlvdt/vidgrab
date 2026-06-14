@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Hero from "@/components/Hero";
 import VideoCard from "@/components/VideoCard";
+import VideoPreview from "@/components/VideoPreview";
 import FormatPicker from "@/components/FormatPicker";
 import PlaylistQueue from "@/components/PlaylistQueue";
 import PlatformGrid from "@/components/PlatformGrid";
@@ -82,11 +83,10 @@ export default function Home() {
     setCurrentUrl(url);
 
     try {
-      const proxy = typeof window !== "undefined" ? localStorage.getItem("vidgrab-proxy") || "" : "";
       const res = await fetch("/api/info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, playlist: isPlaylist, proxy: proxy || undefined }),
+        body: JSON.stringify({ url, playlist: isPlaylist }),
       });
 
       const data = await res.json();
@@ -158,7 +158,15 @@ export default function Home() {
         {/* Video result */}
         {videoInfo && !videoInfo.isPlaylist && (
           <section className="px-4 pb-12">
-            {/* Show video card only if we have metadata (yt-dlp) */}
+            {/* Always-on preview: YouTube embed, native player, or poster */}
+            <VideoPreview
+              sourceUrl={currentUrl}
+              thumbnail={videoInfo.thumbnail}
+              directUrl={videoInfo.directUrl || videoInfo.cobaltUrl}
+              title={videoInfo.title}
+            />
+
+            {/* Metadata card (yt-dlp). Thumbnail hidden — preview shows it. */}
             {videoInfo.title !== "Video" && (
               <VideoCard
                 title={videoInfo.title}
@@ -166,26 +174,13 @@ export default function Home() {
                 duration={videoInfo.durationString}
                 uploader={videoInfo.uploader}
                 viewCount={videoInfo.viewCount}
+                hideThumbnail
               />
             )}
 
             {/* Direct download (TikTok, Instagram, Twitter, Facebook via scraper) */}
             {(videoInfo.directUrl || videoInfo.cobaltUrl) && (
               <div className="max-w-2xl mx-auto mt-6">
-                {videoInfo.thumbnail && (
-                  <div className="glass-card rounded-2xl overflow-hidden mb-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={videoInfo.thumbnail} alt="" className="w-full aspect-video object-cover" />
-                    {videoInfo.title && videoInfo.title !== "Video" && (
-                      <div className="p-4">
-                        <h3 className="font-semibold text-sm sm:text-base line-clamp-2">{videoInfo.title}</h3>
-                        {videoInfo.uploader && (
-                          <p className="text-xs text-[var(--text-muted)] mt-1">{videoInfo.uploader}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
                 <div className="flex flex-wrap gap-3 justify-center">
                   <a
                     href={videoInfo.directUrl || videoInfo.cobaltUrl}

@@ -37,6 +37,7 @@ export default function PrivacyPage() {
                   <li>Không lưu URL bạn tải — mọi xử lý diễn ra trong phiên làm việc.</li>
                   <li>Không sử dụng cookies theo dõi.</li>
                   <li>Lịch sử tải được lưu cục bộ trên trình duyệt của bạn (localStorage), không gửi đến máy chủ.</li>
+                  <li>Cookies xác thực tùy chọn chỉ được quản trị viên cấu hình trực tiếp trên máy chủ, không upload từ giao diện công khai.</li>
                 </ul>
               </section>
               <section>
@@ -45,7 +46,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Báo cáo lỗi</h2>
-                <p>Khi bạn gửi báo cáo lỗi, chúng tôi chỉ lưu: URL bị lỗi, thông báo lỗi, và mô tả bạn cung cấp. Không có thông tin cá nhân nào được thu thập.</p>
+                <p>Khi bạn gửi báo cáo lỗi, chúng tôi lưu URL bị lỗi, thông báo lỗi, mô tả bạn cung cấp và thông tin User-Agent của trình duyệt để chẩn đoán.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Liên hệ</h2>
@@ -62,6 +63,7 @@ export default function PrivacyPage() {
                   <li>URLs are not stored — all processing happens within the session.</li>
                   <li>No tracking cookies.</li>
                   <li>Download history is stored locally in your browser (localStorage), never sent to our servers.</li>
+                  <li>Optional authentication cookies are configured directly on the server by an administrator and cannot be uploaded through the public interface.</li>
                 </ul>
               </section>
               <section>
@@ -70,7 +72,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Error Reports</h2>
-                <p>When you submit an error report, we only store: the failed URL, error message, and your description. No personal information is collected.</p>
+                <p>When you submit an error report, we store the failed URL, error message, your description, and browser User-Agent information for diagnostics.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Contact</h2>

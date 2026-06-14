@@ -21,6 +21,15 @@ export interface HistoryEntry {
 const STORAGE_KEY = "vidgrab-history";
 const MAX_ENTRIES = 50;
 
+function readHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function addToHistory(entry: Omit<HistoryEntry, "id" | "timestamp">) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -46,22 +55,15 @@ export function addToHistory(entry: Omit<HistoryEntry, "id" | "timestamp">) {
 }
 
 export default function DownloadHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>(() =>
+    typeof window === "undefined" ? [] : readHistory()
+  );
   const [expanded, setExpanded] = useState(false);
   const { t } = useI18n();
-
-  const loadHistory = () => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      setHistory(raw ? JSON.parse(raw) : []);
-    } catch {
-      setHistory([]);
-    }
-  };
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
-    loadHistory();
-    const handler = () => loadHistory();
+    const handler = () => setHistory(readHistory());
     window.addEventListener("vidgrab-history-update", handler);
     return () => window.removeEventListener("vidgrab-history-update", handler);
   }, []);
@@ -76,7 +78,7 @@ export default function DownloadHistory() {
   const displayed = expanded ? history : history.slice(0, 3);
 
   const getTimeAgo = (timestamp: number): string => {
-    const diff = Date.now() - timestamp;
+    const diff = now - timestamp;
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return t.timeJustNow;
     if (mins < 60) return `${mins}${t.timeMinAgo}`;

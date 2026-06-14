@@ -102,7 +102,13 @@ export default function FormatPicker({
       format: format.formatId,
       title: videoTitle,
     });
-    if (!format.hasVideo) params.set("audio", "true");
+    if (!format.hasVideo) {
+      params.set("audio", "true");
+    } else if (format.hasAudio) {
+      // Progressive stream (video + audio in one file) — download as-is so the
+      // server doesn't waste time merging or risk swapping the quality.
+      params.set("progressive", "true");
+    }
     triggerDownload(params);
   };
 

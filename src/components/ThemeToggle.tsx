@@ -65,7 +65,7 @@ export default function ThemeToggle() {
 
       {animating && (
         <span className="absolute inset-0 pointer-events-none">
-          {[...Array(4)].map((_, i) => (
+          {particles.map((particle, i) => (
             <span
               key={i}
               className="absolute w-0.5 h-0.5 rounded-full"
@@ -73,8 +73,8 @@ export default function ThemeToggle() {
                 background: theme === "dark" ? "#e0e0ff" : "#ffd700",
                 animation: "confetti-fall 0.5s ease-out forwards",
                 animationDelay: `${i * 0.05}s`,
-                left: `${30 + Math.random() * 40}%`,
-                top: `${20 + Math.random() * 60}%`,
+                left: particle.left,
+                top: particle.top,
               }}
             />
           ))}
@@ -83,3 +83,9 @@ export default function ThemeToggle() {
     </button>
   );
 }
+  const particles = [
+    { left: "34%", top: "28%" },
+    { left: "48%", top: "62%" },
+    { left: "61%", top: "35%" },
+    { left: "72%", top: "71%" },
+  ];

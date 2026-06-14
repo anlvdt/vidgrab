@@ -356,17 +356,11 @@ const I18nContext = createContext<I18nContextValue>({
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("vi");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window === "undefined") return "vi";
     const stored = localStorage.getItem("vidgrab-locale") as Locale | null;
-    if (stored && translations[stored]) {
-      setLocaleState(stored);
-    }
-    // Default is Vietnamese — no auto-detect needed
-    setMounted(true);
-  }, []);
+    return stored && translations[stored] ? stored : "vi";
+  });
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
@@ -375,16 +369,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute("lang", locale);
-    }
-  }, [locale, mounted]);
+    document.documentElement.setAttribute("lang", locale);
+  }, [locale]);
 
   const t = translations[locale];
-
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
-  }
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>

@@ -45,12 +45,12 @@ export default function TermsPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">3. Bản quyền</h2>
-                <p>VidGrab tôn trọng quyền sở hữu trí tuệ. Công cụ này hoạt động tương tự như chức năng "Lưu video" có sẵn trên các nền tảng, hoặc tính năng lưu trang của trình duyệt. VidGrab không phá vỡ bất kỳ biện pháp bảo vệ kỹ thuật nào (DRM).</p>
+                <p>VidGrab tôn trọng quyền sở hữu trí tuệ. Công cụ này hoạt động tương tự như chức năng &quot;Lưu video&quot; có sẵn trên các nền tảng, hoặc tính năng lưu trang của trình duyệt. VidGrab không phá vỡ bất kỳ biện pháp bảo vệ kỹ thuật nào (DRM).</p>
                 <p className="mt-2">Nếu bạn là chủ sở hữu nội dung và muốn yêu cầu gỡ bỏ, vui lòng liên hệ với chúng tôi.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">4. Miễn trừ trách nhiệm</h2>
-                <p>VidGrab được cung cấp "nguyên trạng" (as-is). Chúng tôi không đảm bảo tính khả dụng, độ chính xác, hoặc tính hợp pháp của nội dung được tải xuống. Chúng tôi không chịu trách nhiệm cho bất kỳ thiệt hại nào phát sinh từ việc sử dụng dịch vụ.</p>
+                <p>VidGrab được cung cấp &quot;nguyên trạng&quot; (as-is). Chúng tôi không đảm bảo tính khả dụng, độ chính xác, hoặc tính hợp pháp của nội dung được tải xuống. Chúng tôi không chịu trách nhiệm cho bất kỳ thiệt hại nào phát sinh từ việc sử dụng dịch vụ.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">5. Nội dung bị cấm</h2>
@@ -75,12 +75,12 @@ export default function TermsPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">3. Copyright</h2>
-                <p>VidGrab respects intellectual property rights. This tool functions similarly to the built-in "Save video" features on platforms, or browser page-saving functionality. VidGrab does not circumvent any technical protection measures (DRM).</p>
+                <p>VidGrab respects intellectual property rights. This tool functions similarly to the built-in &quot;Save video&quot; features on platforms, or browser page-saving functionality. VidGrab does not circumvent any technical protection measures (DRM).</p>
                 <p className="mt-2">If you are a content owner and wish to request removal, please contact us.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">4. Disclaimer</h2>
-                <p>VidGrab is provided "as-is". We make no guarantees about the availability, accuracy, or legality of downloaded content. We are not liable for any damages arising from the use of this service.</p>
+                <p>VidGrab is provided &quot;as-is&quot;. We make no guarantees about the availability, accuracy, or legality of downloaded content. We are not liable for any damages arising from the use of this service.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">5. Prohibited Use</h2>

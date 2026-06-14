@@ -26,9 +26,11 @@ export default function TypingHeadline() {
     }
 
     if (deleting && charIndex === 0) {
-      setDeleting(false);
-      setWordIndex((prev) => (prev + 1) % words.length);
-      return;
+      const timeout = setTimeout(() => {
+        setDeleting(false);
+        setWordIndex((prev) => (prev + 1) % words.length);
+      }, 0);
+      return () => clearTimeout(timeout);
     }
 
     const timeout = setTimeout(() => {
