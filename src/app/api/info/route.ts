@@ -118,20 +118,30 @@ export async function POST(req: NextRequest) {
       }
 
       // Step 2: Try yt-dlp (with retry & player client rotation)
+      let ytStderr = "";
       try {
         const info = await getVideoInfo(trimmedUrl, opts);
         return NextResponse.json(info);
-      } catch {
-        /* yt-dlp also failed */
+      } catch (ytErr) {
+        const e = ytErr as Error & { stderr?: string };
+        ytStderr = e.stderr || e.message || "";
       }
 
-      // Step 3: Both failed
+      // Step 3: Both failed. Several platforms (Instagram, Twitter/X) now gate
+      // public videos behind sign-in — the third-party scrapers are down and
+      // yt-dlp can't read them without auth. Detect that and tell the user how
+      // to fix it (add cookies) instead of a misleading "private/invalid link".
+      const needsAuth =
+        /login|sign[- ]?in|cookie|authenticat|empty media response|guest token|rate.?limit reached/i.test(
+          ytStderr
+        );
       return NextResponse.json(
         {
-          error:
-            "Could not download from this platform. The video may be private or the link is invalid.",
+          error: needsAuth
+            ? "This platform now requires sign-in to download. Add your account cookies in Settings, then try again."
+            : "Could not download from this platform. The video may be private, region-locked, or the link is invalid.",
         },
-        { status: 500 }
+        { status: needsAuth ? 401 : 500 }
       );
     }
 

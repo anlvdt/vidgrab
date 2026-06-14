@@ -52,9 +52,15 @@ async function scrapeTwitter(url: string): Promise<ScraperResult> {
     const statusId = match[1];
 
     const res = await fetch(`https://api.vxtwitter.com/Twitter/status/${statusId}`, {
-      headers: { "User-Agent": "VidGrab/1.0" },
+      headers: { "User-Agent": "VidGrab/1.0", "Accept": "application/json" },
       signal: AbortSignal.timeout(15000),
     });
+    // vxtwitter serves an HTML error page (not JSON) when it can't scan a tweet
+    // — e.g. Twitter's guest API changes. Guard so we fall through to yt-dlp
+    // cleanly instead of throwing a JSON parse error.
+    if (!res.ok || !/json/i.test(res.headers.get("content-type") || "")) {
+      return { ok: false, error: "Twitter scan failed (sign-in may be required)" };
+    }
     const json = await res.json();
 
     const mediaUrls: string[] = json.mediaURLs || [];
@@ -82,12 +88,16 @@ async function scrapeInstagram(url: string): Promise<ScraperResult> {
   try {
     const res = await fetch("https://api.igram.world/api/convert", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": UA },
+      headers: { "Content-Type": "application/json", "User-Agent": UA, "Accept": "application/json" },
       body: JSON.stringify({ url }),
       signal: AbortSignal.timeout(15000),
     });
-    const json = await res.json();
-    if (json.items?.length) {
+    // Endpoint occasionally 404s / returns HTML when the upstream API moves;
+    // guard before parsing so we fall through to method 2 / yt-dlp.
+    const json = res.ok && /json/i.test(res.headers.get("content-type") || "")
+      ? await res.json()
+      : null;
+    if (json?.items?.length) {
       const item = json.items[0];
       return {
         ok: true,
