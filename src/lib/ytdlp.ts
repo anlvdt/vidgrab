@@ -8,18 +8,16 @@
  * 4. Better error classification and retry logic
  * 5. Deterministic retry instead of random rotation
  */
+/* eslint-disable @typescript-eslint/no-explicit-any -- yt-dlp JSON and child-process errors are validated at their use sites. */
 
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
-import { existsSync, statSync } from "fs";
-import { join } from "path";
 import { sanitizeUrl } from "./url-sanitizer";
 import {
   getExtractorArgsForAttempt,
   classifyStderr,
-  isBotBlockError,
-  isRateLimitError,
-  isNsigError,
+  extractLastError,
+  withPotProvider,
   PLAYER_CLIENT_FALLBACK,
   type StderrSignal,
 } from "./po-token";
@@ -27,7 +25,14 @@ import {
 const execFileAsync = promisify(execFile);
 
 // ─── Constants ───────────────────────────────────────────────
-const COOKIES_PATH = join(process.cwd(), "cookies.txt");
+const COOKIES_PATH = process.env.VIDGRAB_COOKIES_PATH;
+const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
+const FFMPEG_PATH = process.env.FFMPEG_PATH;
+// bgutil PO-token provider sidecar base URL (e.g. http://bgutil-pot:4416).
+// When set, merged into every youtube: extractor-arg so the yt-dlp plugin can
+// mint Proof-of-Origin tokens. See withPotProvider() for why it must be merged
+// rather than passed as a separate --extractor-args flag.
+const POT_BASE_URL = process.env.BGUTIL_POT_BASE_URL;
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
@@ -159,7 +164,7 @@ export interface DownloadOptions {
 function baseArgs(opts?: DownloadOptions): string[] {
   const args: string[] = ["--no-warnings"];
 
-  if (opts?.cookies !== false && existsSync(COOKIES_PATH)) {
+  if (opts?.cookies !== false && COOKIES_PATH) {
     args.push("--cookies", COOKIES_PATH);
   }
 
@@ -173,9 +178,12 @@ function baseArgs(opts?: DownloadOptions): string[] {
   args.push("--socket-timeout", "30");
   args.push("--user-agent", CHROME_UA);
   args.push("--referer", "https://www.youtube.com/");
-  args.push("--no-check-certificates");
   args.push("--force-ipv4");
   args.push("--geo-bypass");
+
+  if (FFMPEG_PATH) {
+    args.push("--ffmpeg-location", FFMPEG_PATH);
+  }
 
   return args;
 }
@@ -281,13 +289,13 @@ export async function getVideoInfo(
       if (isYT) {
         const extractorArgs = getExtractorArgsForAttempt(attempt);
         if (extractorArgs) {
-          args.push("--extractor-args", extractorArgs);
+          args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
         }
       }
 
       args.push(cleanUrl);
 
-      const { stdout } = await execFileAsync("yt-dlp", args, {
+      const { stdout } = await execFileAsync(YTDLP_BIN, args, {
         timeout: 45000,
         maxBuffer: 10 * 1024 * 1024,
       });
@@ -381,12 +389,12 @@ export async function getPlaylistInfo(
 
     // Use Arroxy's fallback client for playlists (most reliable)
     if (isYT) {
-      args.push("--extractor-args", PLAYER_CLIENT_FALLBACK);
+      args.push("--extractor-args", withPotProvider(PLAYER_CLIENT_FALLBACK, POT_BASE_URL));
     }
 
     args.push(cleanUrl);
 
-    const { stdout } = await execFileAsync("yt-dlp", args, {
+    const { stdout } = await execFileAsync(YTDLP_BIN, args, {
       timeout: 120000,
       maxBuffer: 50 * 1024 * 1024,
     });
@@ -454,7 +462,7 @@ export function buildDownloadArgs(
 
   if (isYouTubeUrl(cleanUrl)) {
     // Use Arroxy's primary strategy: skip PoT-demanding clients
-    args.push("--extractor-args", PLAYER_CLIENT_FALLBACK);
+    args.push("--extractor-args", withPotProvider(PLAYER_CLIENT_FALLBACK, POT_BASE_URL));
     args.push("--throttled-rate", "100K");
   }
 
@@ -489,6 +497,28 @@ export function buildDownloadArgs(
   return args;
 }
 
+/** Error raised when a download fails before any bytes are produced. */
+export interface DownloadFailure extends Error {
+  stderr: string;
+  signal: StderrSignal;
+  code: number | null;
+  /** True if bytes were already streamed when the failure occurred. */
+  midStream: boolean;
+}
+
+export interface DownloadStream {
+  stream: ReadableStream<Uint8Array>;
+  /**
+   * Resolves once the first byte of a successful download has been produced
+   * (safe to commit an HTTP 200 + stream). Rejects with a {@link DownloadFailure}
+   * if yt-dlp terminally fails *before* producing any bytes — letting the caller
+   * return a proper error status or trigger a fallback instead of streaming an
+   * empty/corrupt file.
+   */
+  firstByte: Promise<void>;
+  abort: () => void;
+}
+
 /**
  * Spawn yt-dlp download with Arroxy-inspired 3-attempt retry ladder.
  *
@@ -497,19 +527,62 @@ export function buildDownloadArgs(
  *   Attempt 1: player_client=ios,web_creator (alternative)
  *   Attempt 2: player_client=mweb,android (mobile fallback)
  *
- * Only retries on bot-block, 429, or nsig errors.
+ * Only retries on bot-block, 429, or nsig errors — and only *before* any bytes
+ * have been streamed (retrying mid-stream would corrupt the output).
+ *
+ * Reliability guarantees (vs. the previous implementation):
+ *   - Success is `exit code 0` ONLY. A non-zero exit after partial output is
+ *     surfaced as a stream error so the browser marks the download as failed,
+ *     instead of silently delivering a truncated file.
+ *   - Pre-data terminal failures reject `firstByte` so the route can fall back
+ *     (e.g. Cobalt) or return a real HTTP error.
+ *   - `progressive` formats (already containing audio) are downloaded as-is,
+ *     and an explicit `formatId` never silently downgrades to a different
+ *     quality — it downloads exactly what the user picked or errors.
  */
 export function spawnDownloadWithRetry(
   url: string,
   formatId?: string,
   audioOnly?: boolean,
-  opts?: DownloadOptions
-): { stream: ReadableStream<Uint8Array>; abort: () => void } {
+  opts?: DownloadOptions & { progressive?: boolean }
+): DownloadStream {
   const cleanUrl = sanitizeUrl(url);
   const isYT = isYouTubeUrl(cleanUrl);
   let currentAttempt = 0;
   let currentProc: ReturnType<typeof spawn> | null = null;
   let aborted = false;
+  let firstByteSeen = false;
+
+  let resolveFirstByte!: () => void;
+  let rejectFirstByte!: (err: DownloadFailure) => void;
+  let firstByteSettled = false;
+  const firstByte = new Promise<void>((resolve, reject) => {
+    resolveFirstByte = () => {
+      if (firstByteSettled) return;
+      firstByteSettled = true;
+      resolve();
+    };
+    rejectFirstByte = (err) => {
+      if (firstByteSettled) return;
+      firstByteSettled = true;
+      reject(err);
+    };
+  });
+
+  const makeFailure = (
+    msg: string,
+    stderr: string,
+    signal: StderrSignal,
+    code: number | null,
+    midStream: boolean
+  ): DownloadFailure => {
+    const err = new Error(msg) as DownloadFailure;
+    err.stderr = stderr;
+    err.signal = signal;
+    err.code = code;
+    err.midStream = midStream;
+    return err;
+  };
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -529,18 +602,21 @@ export function spawnDownloadWithRetry(
               ? 4
               : 8;
         args.push("-N", String(frags));
+        // Recover from transient fragment/network drops mid-stream instead of
+        // delivering a truncated file.
+        args.push("--fragment-retries", "10");
 
         // Arroxy-style deterministic player client ladder
         if (isYT) {
           const extractorArgs = getExtractorArgsForAttempt(currentAttempt);
           if (extractorArgs) {
-            args.push("--extractor-args", extractorArgs);
+            args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
           }
           args.push("--throttled-rate", "100K");
         }
 
         if (audioOnly) {
-          args.push("-f", "bestaudio");
+          args.push("-f", "bestaudio/best");
           args.push(
             "--extract-audio",
             "--audio-format",
@@ -549,8 +625,16 @@ export function spawnDownloadWithRetry(
             "0"
           );
         } else if (formatId) {
-          args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio/best`);
-          args.push("--merge-output-format", "mp4");
+          if (opts?.progressive) {
+            // Format already carries audio — download exactly it, no merge.
+            args.push("-f", formatId);
+          } else {
+            // Video-only stream → merge with best audio. No `/best` fallback:
+            // we deliver the requested quality or surface an error, never a
+            // silently different resolution.
+            args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio`);
+            args.push("--merge-output-format", "mp4");
+          }
         } else {
           args.push("-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best");
           args.push("--merge-output-format", "mp4");
@@ -568,13 +652,13 @@ export function spawnDownloadWithRetry(
 
         args.push("-o", "-", cleanUrl);
 
-        const proc = spawn("yt-dlp", args);
+        const proc = spawn(YTDLP_BIN, args);
         currentProc = proc;
-        let hasData = false;
         let stderrBuf = "";
 
         proc.stdout.on("data", (chunk: Buffer) => {
-          hasData = true;
+          firstByteSeen = true;
+          resolveFirstByte();
           controller.enqueue(new Uint8Array(chunk));
         });
 
@@ -585,25 +669,38 @@ export function spawnDownloadWithRetry(
         proc.on("close", (code) => {
           if (aborted) return;
 
-          if (code === 0 || hasData) {
+          // Success is exit code 0 only.
+          if (code === 0) {
             controller.close();
             return;
           }
 
-          // Classify error using Arroxy's signal system
           const signal = classifyStderr(stderrBuf);
-
           if (signal === 'rateLimit') {
             trackRateLimit();
           }
 
-          // Arroxy-style retry: only on bot-block, rate-limit, or nsig
+          // Once bytes have streamed we cannot retry (output would corrupt) and
+          // cannot change the HTTP status — surface the failure so the browser
+          // aborts the partial download rather than keeping a truncated file.
+          if (firstByteSeen) {
+            console.error(`yt-dlp failed mid-stream (code ${code}, signal: ${signal}):`, stderrBuf.slice(-500));
+            controller.error(
+              makeFailure(`Download interrupted (code ${code})`, stderrBuf, signal, code, true)
+            );
+            return;
+          }
+
+          // Retry on bot-block, rate-limit, nsig — and formatUnavailable, since
+          // rotating the player client can expose a format the first client
+          // didn't list. Only before any bytes were produced.
           const isRetryable =
             isYT &&
             currentAttempt < MAX_RETRY_ATTEMPTS - 1 &&
             (signal === 'botBlock' ||
               signal === 'rateLimit' ||
-              signal === 'nsig');
+              signal === 'nsig' ||
+              signal === 'formatUnavailable');
 
           if (isRetryable) {
             currentAttempt++;
@@ -614,13 +711,29 @@ export function spawnDownloadWithRetry(
             setTimeout(tryDownload, delay);
           } else {
             console.error(`yt-dlp failed (code ${code}, signal: ${signal}):`, stderrBuf.slice(-500));
-            controller.close();
+            const failure = makeFailure(
+              extractLastError(stderrBuf) || `Download failed (code ${code})`,
+              stderrBuf,
+              signal,
+              code,
+              false
+            );
+            rejectFirstByte(failure);
+            controller.error(failure);
           }
         });
 
         proc.on("error", (err) => {
           console.error("yt-dlp process error:", err);
-          controller.error(err);
+          const failure = makeFailure(
+            err.message || "yt-dlp process error",
+            (err as { message?: string }).message || "",
+            firstByteSeen ? null : 'networkError',
+            null,
+            firstByteSeen
+          );
+          rejectFirstByte(failure);
+          controller.error(failure);
         });
       }
 
@@ -636,6 +749,7 @@ export function spawnDownloadWithRetry(
 
   return {
     stream,
+    firstByte,
     abort: () => {
       aborted = true;
       if (currentProc) {
@@ -645,41 +759,7 @@ export function spawnDownloadWithRetry(
   };
 }
 
-// ─── yt-dlp Auto-Update ──────────────────────────────────────
-let lastUpdateCheck = 0;
-const UPDATE_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
-
-export async function ensureYtdlpFresh(): Promise<void> {
-  const now = Date.now();
-  if (now - lastUpdateCheck < UPDATE_INTERVAL) return;
-  lastUpdateCheck = now;
-
-  try {
-    // Check binary age
-    const ytdlpPath = "/usr/local/bin/yt-dlp";
-    if (!existsSync(ytdlpPath)) return;
-
-    const stat = statSync(ytdlpPath);
-    const ageMs = now - stat.mtimeMs;
-    const twoDays = 2 * 24 * 60 * 60 * 1000;
-
-    if (ageMs < twoDays) return;
-
-    console.log("[yt-dlp] Binary older than 2 days, updating in background...");
-
-    // Update in background — don't block requests
-    execFileAsync("yt-dlp", ["--update-to", "nightly"], { timeout: 60000 })
-      .then(({ stdout }) => {
-        if (stdout.includes("Updated") || stdout.includes("Updating")) {
-          console.log("[yt-dlp] Updated successfully");
-        }
-      })
-      .catch((err) => {
-        console.warn("[yt-dlp] Update failed:", err.message);
-      });
-  } catch {
-    // Ignore update check errors
-  }
-}
+// yt-dlp is pinned in the image. Updates happen through reviewed deploys.
+export async function ensureYtdlpFresh(): Promise<void> {}
 
 export { formatFileSize, formatDuration, isYouTubeUrl, getRateLimitCount };

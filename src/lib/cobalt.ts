@@ -28,7 +28,7 @@ export async function cobaltDownload(
     return { ok: false, error: "Cobalt API not configured" };
   }
 
-  const body: Record<string, any> = {
+  const body: Record<string, string> = {
     url: videoUrl,
     videoQuality: "1080",
     filenameStyle: "basic",
@@ -76,18 +76,15 @@ export async function cobaltDownload(
     }
 
     return { ok: false, error: "Unexpected Cobalt response" };
-  } catch (err: any) {
-    return { ok: false, error: err.message || "Cobalt request failed" };
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Cobalt request failed",
+    };
   }
 }
 
 /** Check if Cobalt is configured and should be tried */
 export function isCobaltAvailable(): boolean {
   return !!COBALT_API_URL;
-}
-
-/** Platforms where Cobalt excels (no cookies needed) */
-export function shouldUseCobaltFirst(url: string): boolean {
-  if (!isCobaltAvailable()) return false;
-  return /tiktok\.com|instagram\.com|instagr\.am/i.test(url);
 }

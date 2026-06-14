@@ -89,6 +89,30 @@ export function getExtractorArgsForAttempt(attempt: number): string | undefined 
 }
 
 /**
+ * Merge the bgutil PO-token provider base URL into a `youtube:` extractor-arg
+ * string.
+ *
+ * CRITICAL: yt-dlp does NOT merge repeated `--extractor-args youtube:...`
+ * flags — the last one silently overrides the earlier one (verified: passing
+ * player_client in one flag and getpot in another makes yt-dlp fall back to
+ * the default clients). The getpot key therefore MUST live in the SAME string
+ * as player_client, joined with ';'.
+ *
+ * When the provider HTTP server (bgutil-ytdlp-pot-provider sidecar) is
+ * configured, this lets the yt-dlp plugin mint Proof-of-Origin tokens so
+ * YouTube web/tv clients work from datacenter IPs without bot-blocks.
+ *
+ * Returns the input unchanged when no provider URL is configured.
+ */
+export function withPotProvider(
+  youtubeExtractorArgs: string,
+  baseUrl: string | undefined,
+): string {
+  if (!baseUrl) return youtubeExtractorArgs;
+  return `${youtubeExtractorArgs};getpot_bgutil_baseurl=${baseUrl}`;
+}
+
+/**
  * Determine if an error is a bot-block that warrants retry.
  */
 export function isBotBlockError(stderr: string): boolean {

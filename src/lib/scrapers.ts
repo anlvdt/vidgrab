@@ -38,8 +38,8 @@ async function scrapeTikTok(url: string): Promise<ScraperResult> {
       };
     }
     return { ok: false, error: json.msg || "TikWM error" };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
+  } catch (error: unknown) {
+    return { ok: false, error: error instanceof Error ? error.message : "TikTok scraping failed" };
   }
 }
 
@@ -71,8 +71,8 @@ async function scrapeTwitter(url: string): Promise<ScraperResult> {
       videoUrl,
       author: json.user_name || "",
     };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
+  } catch (error: unknown) {
+    return { ok: false, error: error instanceof Error ? error.message : "Twitter scraping failed" };
   }
 }
 

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVideoInfo, getPlaylistInfo, ensureYtdlpFresh } from "@/lib/ytdlp";
+import { getPytubefixInfo } from "@/lib/pytubefix";
 import { scrapeVideo, detectScrapablePlatform } from "@/lib/scrapers";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
-import { classifyStderr, type StderrSignal } from "@/lib/po-token";
+import { classifyStderr } from "@/lib/po-token";
+import { assertPublicHttpUrl, consumeRateLimit } from "@/lib/request-guard";
+import type { ScraperResult } from "@/lib/scrapers";
+
+function isYouTubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/i.test(url);
+}
 
 /**
  * Parse yt-dlp stderr into user-friendly error messages.
@@ -34,7 +41,6 @@ function parseError(stderr: string): string {
   }
 
   // Fallback to pattern matching for cases not covered by signal classification
-  const lower = stderr.toLowerCase();
   if (/blocked|IP.*block/i.test(stderr))
     return "IP blocked. Trying alternative...";
   if (/login|cookie|authentication|sign in/i.test(stderr))
@@ -46,7 +52,7 @@ function parseError(stderr: string): string {
   return "Failed to fetch video info.";
 }
 
-function scraperResponse(result: any) {
+function scraperResponse(result: ScraperResult) {
   return NextResponse.json({
     id: "scraper",
     title: result.title || "Video",
@@ -66,7 +72,11 @@ function scraperResponse(result: any) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, playlist, proxy } = await req.json();
+    if (!consumeRateLimit(req, 12)) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    }
+
+    const { url, playlist } = await req.json();
 
     if (
       !url ||
@@ -83,8 +93,16 @@ export async function POST(req: NextRequest) {
     ensureYtdlpFresh().catch(() => {});
 
     // Sanitize URL: strip tracking params, unwrap redirects (Arroxy feature)
-    const trimmedUrl = sanitizeUrl(url);
-    const opts = { proxy: proxy || undefined };
+    let trimmedUrl: string;
+    try {
+      trimmedUrl = await assertPublicHttpUrl(sanitizeUrl(url));
+    } catch {
+      return NextResponse.json(
+        { error: "Please provide a valid public URL" },
+        { status: 400 }
+      );
+    }
+    const opts = {};
     const isScrapable = !!detectScrapablePlatform(trimmedUrl);
 
     // ── Strategy A: For TikTok/Instagram/Twitter/Facebook ──
@@ -124,18 +142,29 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(await getPlaylistInfo(trimmedUrl, opts));
       }
       return NextResponse.json(await getVideoInfo(trimmedUrl, opts));
-    } catch (ytErr: any) {
-      const stderr = ytErr.stderr || ytErr.message || "";
+    } catch (ytErr: unknown) {
+      const error = ytErr as Error & { stderr?: string; code?: string };
+      const stderr = error.stderr || error.message || "";
 
-      if (/ENOENT/i.test(ytErr.code || "")) {
+      if (/ENOENT/i.test(error.code || "")) {
         return NextResponse.json(
           { error: "yt-dlp not found. Install: brew install yt-dlp" },
           { status: 500 }
         );
       }
 
-      // Fallback to Cobalt for YouTube when yt-dlp fails with auth/rate-limit
-      // Use Arroxy's signal classification for more accurate detection
+      // Fallback #1 for YouTube: pytubefix (secondary extractor). It returns
+      // real formats + metadata, so prefer it over Cobalt's blind direct URL.
+      if (isYouTubeUrl(trimmedUrl) && !playlist) {
+        try {
+          return NextResponse.json(await getPytubefixInfo(trimmedUrl));
+        } catch {
+          /* pytubefix also failed — fall through to Cobalt */
+        }
+      }
+
+      // Fallback #2: Cobalt for YouTube when yt-dlp fails with auth/rate-limit.
+      // Use Arroxy's signal classification for more accurate detection.
       const ytSignal = classifyStderr(stderr);
       const isRetryableWithCobalt =
         ytSignal === 'botBlock' ||
@@ -174,7 +203,7 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Info fetch error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred." },

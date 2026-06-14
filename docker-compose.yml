@@ -7,9 +7,23 @@ services:
     environment:
       - NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
       - COBALT_API_URL=http://cobalt:9000
+      # PO-token provider sidecar — biggest reliability lever for YouTube
+      # on datacenter IPs. yt-dlp's bgutil plugin fetches tokens from here.
+      - BGUTIL_POT_BASE_URL=http://bgutil-pot:4416
       # - YTDLP_PROXY=socks5://127.0.0.1:1080
     volumes:
       - ./cookies.txt:/app/cookies.txt:ro
+    depends_on:
+      - bgutil-pot
+    restart: unless-stopped
+
+  # PO-token (Proof-of-Origin) provider for YouTube. Runs a headless BotGuard
+  # solver and serves minted tokens over HTTP on :4416. The yt-dlp plugin in
+  # the vidgrab image calls it via youtube:getpot_bgutil_baseurl.
+  bgutil-pot:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.2.2
+    container_name: bgutil-pot
+    init: true
     restart: unless-stopped
 
   # Cobalt for YouTube/TikTok/Instagram fallback

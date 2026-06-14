@@ -1,6 +1,13 @@
-FROM node:22-alpine AS base
+FROM node:22.16.0-alpine3.21 AS base
+# yt-dlp + JS challenge runtime + bgutil PO-token plugin (talks to the
+# bgutil-pot sidecar over HTTP to mint Proof-of-Origin tokens for YouTube).
+# pytubefix is the secondary YouTube extractor (fallback when yt-dlp fails).
 RUN apk add --no-cache python3 py3-pip ffmpeg curl \
-    && pip3 install --break-system-packages yt-dlp yt-dlp-ejs
+    && pip3 install --break-system-packages \
+        yt-dlp==2026.3.17 \
+        yt-dlp-ejs==0.7.0 \
+        bgutil-ytdlp-pot-provider==1.2.2 \
+        pytubefix==10.9.0
 
 # Dependencies
 FROM base AS deps
@@ -27,11 +34,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
+# pytubefix fallback helper — resolved at runtime via process.cwd()/scripts.
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/pytubefix_helper.py ./scripts/pytubefix_helper.py
 RUN chmod +x ./start.sh
-
-# yt-dlp needs write access for pip self-update
-RUN chown -R nextjs:nodejs /usr/lib/python3* 2>/dev/null || true \
-    && chown nextjs:nodejs /usr/local/bin/yt-dlp 2>/dev/null || true
 
 USER nextjs
 EXPOSE 3000
