@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VidGrab
+
+VidGrab is a Next.js video downloader for public video links from popular
+platforms in Vietnam. It is configured to run from the iNET domain
+`https://vidgrab.io.vn`.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production on iNET
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The production path is Docker Compose on the iNET host/domain:
 
-## Learn More
+```bash
+docker compose up -d --build
+```
 
-To learn more about Next.js, take a look at the following resources:
+The compose stack publishes the app on port `3000` and sets:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Point `vidgrab.io.vn` at the iNET server or hosting proxy that serves this
+container. Keep TLS/proxy settings in iNET or the server reverse proxy.
 
-## Deploy on Vercel
+## Runtime Services
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The Docker image includes:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `yt-dlp` for primary extraction
+- `pytubefix` as a YouTube fallback
+- `ffmpeg` for media handling
+
+The Compose stack also starts:
+
+- `bgutil-pot`, a YouTube PO-token sidecar
+- `cobalt`, an optional fallback API for supported platforms
+
+For platforms that require login, age checks, region checks, or bot protection,
+provide cookies/proxy configuration as needed. VidGrab should describe these
+limitations honestly instead of claiming every service can always be downloaded.
+
+## Checks
+
+Before publishing changes:
+
+```bash
+npm run lint
+npm run build
+```
+
+Health check:
+
+```bash
+curl https://vidgrab.io.vn/api/health
+```
+
+## Environment
+
+Copy `.env.example` when running outside Compose, then adjust optional values
+such as `YTDLP_PROXY`, `BGUTIL_POT_BASE_URL`, `COBALT_API_URL`, and
+`COBALT_API_KEY`.
