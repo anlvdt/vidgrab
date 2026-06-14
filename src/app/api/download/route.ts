@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   // SponsorBlock support (from Arroxy) — skip/mark sponsors in YouTube videos
   const sponsorBlock = searchParams.get("sponsorblock");
 
-  const release = acquireDownloadSlot();
+  const release = acquireDownloadSlot(url);
   if (!release) {
     return Response.json({ error: "Server is busy. Please try again shortly." }, { status: 503 });
   }

@@ -18,7 +18,7 @@ import {
   classifyStderr,
   extractLastError,
   withPotProvider,
-  PLAYER_CLIENT_FALLBACK,
+  defaultPlayerClient,
   type StderrSignal,
 } from "./po-token";
 
@@ -28,22 +28,28 @@ const execFileAsync = promisify(execFile);
 const COOKIES_PATH = process.env.VIDGRAB_COOKIES_PATH;
 const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
 const FFMPEG_PATH = process.env.FFMPEG_PATH;
+// Standalone ffmpeg binary for the audio-only transcode pipe. FFMPEG_PATH is a
+// *location* passed to yt-dlp's --ffmpeg-location (may be a dir or a binary);
+// FFMPEG_BIN is what we exec directly. Default to PATH lookup.
+const FFMPEG_BIN =
+  process.env.FFMPEG_BIN ||
+  (FFMPEG_PATH && /ffmpeg$/.test(FFMPEG_PATH) ? FFMPEG_PATH : "ffmpeg");
 // bgutil PO-token provider sidecar base URL (e.g. http://bgutil-pot:4416).
 // When set, merged into every youtube: extractor-arg so the yt-dlp plugin can
 // mint Proof-of-Origin tokens. See withPotProvider() for why it must be merged
 // rather than passed as a separate --extractor-args flag.
 const POT_BASE_URL = process.env.BGUTIL_POT_BASE_URL;
+// Whether a PO-token provider is configured — selects the format-rich client
+// ladder (tv,web_safari) over the token-free one (android_vr).
+const HAS_POT = !!POT_BASE_URL;
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
 /**
- * Arroxy-inspired retry ladder for YouTube player clients.
- *
- * Unlike the original random rotation, this uses a deterministic strategy:
- * - Attempt 0: default,-web,-web_safari (Arroxy's PLAYER_CLIENT_FALLBACK)
- *   Skips the clients that most often trigger bot detection.
- * - Attempt 1: ios,web_creator (alternative clients with less bot detection)
- * - Attempt 2: mweb,android (mobile clients, usually least restricted)
+ * Deterministic 3-attempt retry ladder for YouTube player clients. The exact
+ * clients are PoT-aware and live in po-token.ts (getExtractorArgsForAttempt):
+ * lead with android_vr when no PO-token provider is configured, or with
+ * tv,web_safari when one is. Each attempt rotates to a different client family.
  */
 const MAX_RETRY_ATTEMPTS = 3;
 
@@ -285,12 +291,10 @@ export async function getVideoInfo(
         "--skip-download",
       ];
 
-      // Arroxy-style: use deterministic player client ladder
+      // PoT-aware deterministic player-client ladder
       if (isYT) {
-        const extractorArgs = getExtractorArgsForAttempt(attempt);
-        if (extractorArgs) {
-          args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
-        }
+        const extractorArgs = getExtractorArgsForAttempt(attempt, HAS_POT);
+        args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
       }
 
       args.push(cleanUrl);
@@ -387,9 +391,9 @@ export async function getPlaylistInfo(
       "3",
     ];
 
-    // Use Arroxy's fallback client for playlists (most reliable)
+    // Lead client for playlists (PoT-aware)
     if (isYT) {
-      args.push("--extractor-args", withPotProvider(PLAYER_CLIENT_FALLBACK, POT_BASE_URL));
+      args.push("--extractor-args", withPotProvider(defaultPlayerClient(HAS_POT), POT_BASE_URL));
     }
 
     args.push(cleanUrl);
@@ -461,8 +465,7 @@ export function buildDownloadArgs(
   args.push("-N", String(frags));
 
   if (isYouTubeUrl(cleanUrl)) {
-    // Use Arroxy's primary strategy: skip PoT-demanding clients
-    args.push("--extractor-args", withPotProvider(PLAYER_CLIENT_FALLBACK, POT_BASE_URL));
+    args.push("--extractor-args", withPotProvider(defaultPlayerClient(HAS_POT), POT_BASE_URL));
     args.push("--throttled-rate", "100K");
   }
 
@@ -520,12 +523,11 @@ export interface DownloadStream {
 }
 
 /**
- * Spawn yt-dlp download with Arroxy-inspired 3-attempt retry ladder.
+ * Spawn yt-dlp download with a PoT-aware 3-attempt retry ladder.
  *
- * Retry strategy (from Arroxy):
- *   Attempt 0: player_client=default,-web,-web_safari (skip PoT clients)
- *   Attempt 1: player_client=ios,web_creator (alternative)
- *   Attempt 2: player_client=mweb,android (mobile fallback)
+ * Retry strategy (see po-token.ts for the exact client ladders):
+ *   Without a PO-token provider: android_vr → tv → mweb
+ *   With a PO-token provider:     tv,web_safari → mweb → android_vr
  *
  * Only retries on bot-block, 429, or nsig errors — and only *before* any bytes
  * have been streamed (retrying mid-stream would corrupt the output).
@@ -550,8 +552,10 @@ export function spawnDownloadWithRetry(
   const isYT = isYouTubeUrl(cleanUrl);
   let currentAttempt = 0;
   let currentProc: ReturnType<typeof spawn> | null = null;
+  let currentTranscoder: ReturnType<typeof spawn> | null = null;
   let aborted = false;
   let firstByteSeen = false;
+  let controllerSettled = false;
 
   let resolveFirstByte!: () => void;
   let rejectFirstByte!: (err: DownloadFailure) => void;
@@ -586,9 +590,29 @@ export function spawnDownloadWithRetry(
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
+      // The download and (for audio) the ffmpeg transcoder are two processes;
+      // either can try to terminate the stream. Guard so we close/error the
+      // controller exactly once.
+      const closeController = () => {
+        if (controllerSettled) return;
+        controllerSettled = true;
+        controller.close();
+      };
+      const errorController = (failure: DownloadFailure) => {
+        if (controllerSettled) return;
+        controllerSettled = true;
+        controller.error(failure);
+      };
+      const killTranscoder = () => {
+        if (currentTranscoder) {
+          try { currentTranscoder.kill("SIGKILL"); } catch { /* already gone */ }
+          currentTranscoder = null;
+        }
+      };
+
       function tryDownload() {
         if (aborted) {
-          controller.close();
+          closeController();
           return;
         }
 
@@ -606,37 +630,42 @@ export function spawnDownloadWithRetry(
         // delivering a truncated file.
         args.push("--fragment-retries", "10");
 
-        // Arroxy-style deterministic player client ladder
+        // PoT-aware deterministic player-client ladder
         if (isYT) {
-          const extractorArgs = getExtractorArgsForAttempt(currentAttempt);
-          if (extractorArgs) {
-            args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
-          }
+          const extractorArgs = getExtractorArgsForAttempt(currentAttempt, HAS_POT);
+          args.push("--extractor-args", withPotProvider(extractorArgs, POT_BASE_URL));
           args.push("--throttled-rate", "100K");
         }
 
         if (audioOnly) {
+          // Just fetch the raw best audio; we transcode to MP3 through an
+          // ffmpeg pipe below. yt-dlp's --extract-audio postprocessor is a
+          // silent no-op when output goes to stdout (-o -), so it would
+          // otherwise stream raw Opus/WebM mislabeled as MP3.
           args.push("-f", "bestaudio/best");
-          args.push(
-            "--extract-audio",
-            "--audio-format",
-            "mp3",
-            "--audio-quality",
-            "0"
-          );
         } else if (formatId) {
           if (opts?.progressive) {
             // Format already carries audio — download exactly it, no merge.
             args.push("-f", formatId);
           } else {
-            // Video-only stream → merge with best audio. No `/best` fallback:
-            // we deliver the requested quality or surface an error, never a
-            // silently different resolution.
-            args.push("-f", `${formatId}+bestaudio[ext=m4a]/${formatId}+bestaudio`);
+            // Video-only stream → merge with best AAC audio. AAC (mp4a) is
+            // mandatory: merging to a stdout pipe yields MPEG-TS (mp4 needs
+            // seekable output), and TS only carries AAC cleanly. No `/best`
+            // fallback: we deliver the requested quality or surface an error,
+            // never a silently different resolution.
+            args.push("-f", `${formatId}+bestaudio[acodec^=mp4a]/${formatId}+bestaudio[ext=m4a]`);
             args.push("--merge-output-format", "mp4");
           }
         } else {
-          args.push("-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best");
+          // Prefer H.264 (avc1) + AAC. yt-dlp ignores --merge-output-format on a
+          // stdout pipe and always muxes to MPEG-TS, which can ONLY carry
+          // H.264/AAC — VP9/AV01 get muxed as an undecodable "private data"
+          // stream. `[ext=mp4]` alone is unsafe now that AV01 ships in mp4 and
+          // outranks avc1 on resolution, so pin the codec explicitly.
+          args.push(
+            "-f",
+            "bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[ext=mp4][vcodec^=avc1]/best[ext=mp4]/best"
+          );
           args.push("--merge-output-format", "mp4");
         }
 
@@ -656,11 +685,64 @@ export function spawnDownloadWithRetry(
         currentProc = proc;
         let stderrBuf = "";
 
-        proc.stdout.on("data", (chunk: Buffer) => {
-          firstByteSeen = true;
-          resolveFirstByte();
-          controller.enqueue(new Uint8Array(chunk));
-        });
+        // For audio downloads we transcode yt-dlp's raw best-audio stream to a
+        // real MP3 through ffmpeg (yt-dlp's own --extract-audio is a no-op on a
+        // stdout pipe). The deliverable bytes — and hence firstByte — come from
+        // ffmpeg's stdout, not yt-dlp's. For video, yt-dlp's stdout is served
+        // directly as before.
+        if (audioOnly) {
+          const transcoder = spawn(FFMPEG_BIN, [
+            "-loglevel", "error",
+            "-i", "pipe:0",
+            "-vn",
+            "-codec:a", "libmp3lame",
+            "-q:a", "2", // VBR ~190 kbps, transparent quality
+            "-f", "mp3",
+            "pipe:1",
+          ]);
+          currentTranscoder = transcoder;
+
+          proc.stdout.pipe(transcoder.stdin);
+          // yt-dlp dying before ffmpeg drains its input yields EPIPE here; the
+          // real failure is surfaced via yt-dlp's close handler, so swallow it.
+          transcoder.stdin.on("error", () => {});
+
+          transcoder.stdout.on("data", (chunk: Buffer) => {
+            firstByteSeen = true;
+            resolveFirstByte();
+            controller.enqueue(new Uint8Array(chunk));
+          });
+          transcoder.on("error", (err) => {
+            const failure = makeFailure(
+              err.message || "ffmpeg transcode error",
+              err.message || "",
+              firstByteSeen ? null : "networkError",
+              null,
+              firstByteSeen
+            );
+            rejectFirstByte(failure);
+            errorController(failure);
+          });
+          transcoder.on("close", (tcode) => {
+            if (aborted) return;
+            currentTranscoder = null;
+            if (tcode === 0) {
+              closeController();
+            } else if (firstByteSeen) {
+              // Transcode died after bytes shipped — can't recover a partial.
+              errorController(
+                makeFailure(`Transcode interrupted (code ${tcode})`, "", null, tcode, true)
+              );
+            }
+            // Pre-byte ffmpeg failure: let yt-dlp's close handler drive retry.
+          });
+        } else {
+          proc.stdout.on("data", (chunk: Buffer) => {
+            firstByteSeen = true;
+            resolveFirstByte();
+            controller.enqueue(new Uint8Array(chunk));
+          });
+        }
 
         proc.stderr.on("data", (data: Buffer) => {
           stderrBuf += data.toString();
@@ -669,11 +751,17 @@ export function spawnDownloadWithRetry(
         proc.on("close", (code) => {
           if (aborted) return;
 
-          // Success is exit code 0 only.
+          // Success is exit code 0 only. For audio, yt-dlp finishing just means
+          // it's done feeding ffmpeg — the transcoder's close handler closes the
+          // controller once the MP3 is fully flushed.
           if (code === 0) {
-            controller.close();
+            if (!audioOnly) closeController();
             return;
           }
+
+          // yt-dlp failed — tear down the transcoder so it doesn't emit a
+          // truncated MP3 or linger.
+          killTranscoder();
 
           const signal = classifyStderr(stderrBuf);
           if (signal === 'rateLimit') {
@@ -685,7 +773,7 @@ export function spawnDownloadWithRetry(
           // aborts the partial download rather than keeping a truncated file.
           if (firstByteSeen) {
             console.error(`yt-dlp failed mid-stream (code ${code}, signal: ${signal}):`, stderrBuf.slice(-500));
-            controller.error(
+            errorController(
               makeFailure(`Download interrupted (code ${code})`, stderrBuf, signal, code, true)
             );
             return;
@@ -719,12 +807,13 @@ export function spawnDownloadWithRetry(
               false
             );
             rejectFirstByte(failure);
-            controller.error(failure);
+            errorController(failure);
           }
         });
 
         proc.on("error", (err) => {
           console.error("yt-dlp process error:", err);
+          killTranscoder();
           const failure = makeFailure(
             err.message || "yt-dlp process error",
             (err as { message?: string }).message || "",
@@ -733,7 +822,7 @@ export function spawnDownloadWithRetry(
             firstByteSeen
           );
           rejectFirstByte(failure);
-          controller.error(failure);
+          errorController(failure);
         });
       }
 
@@ -741,9 +830,8 @@ export function spawnDownloadWithRetry(
     },
     cancel() {
       aborted = true;
-      if (currentProc) {
-        currentProc.kill("SIGTERM");
-      }
+      if (currentProc) currentProc.kill("SIGTERM");
+      if (currentTranscoder) currentTranscoder.kill("SIGKILL");
     },
   });
 
@@ -752,9 +840,8 @@ export function spawnDownloadWithRetry(
     firstByte,
     abort: () => {
       aborted = true;
-      if (currentProc) {
-        currentProc.kill("SIGTERM");
-      }
+      if (currentProc) currentProc.kill("SIGTERM");
+      if (currentTranscoder) currentTranscoder.kill("SIGKILL");
     },
   };
 }

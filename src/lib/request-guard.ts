@@ -5,7 +5,14 @@ import type { NextRequest } from "next/server";
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 const buckets = new Map<string, { count: number; resetAt: number }>();
+
+// Concurrency: a global cap across all downloads plus a per-platform cap, so a
+// burst of YouTube downloads can't starve TikTok/Facebook (and vice-versa) and
+// no single platform gets hammered hard enough to trip its rate limiter.
+const GLOBAL_MAX_DOWNLOADS = 4;
+const PER_HOST_MAX_DOWNLOADS = 2;
 let activeDownloads = 0;
+const perHostDownloads = new Map<string, number>();
 
 function isPrivateIpv4(address: string): boolean {
   const octets = address.split(".").map(Number);
@@ -94,14 +101,53 @@ export function consumeRateLimit(req: NextRequest, limit = MAX_REQUESTS_PER_WIND
   return true;
 }
 
-export function acquireDownloadSlot(maxConcurrent = 2): (() => void) | null {
-  if (activeDownloads >= maxConcurrent) return null;
+/**
+ * Coarse platform key for per-host concurrency (youtube / tiktok / facebook /
+ * instagram / twitter, else the registrable-ish hostname). Keeps unrelated
+ * platforms from sharing — and competing for — the same concurrency budget.
+ */
+export function platformKey(url: string): string {
+  const u = url.toLowerCase();
+  if (/youtube\.com|youtu\.be|googlevideo\.com/.test(u)) return "youtube";
+  if (/tiktok\.com|tikwm\.com/.test(u)) return "tiktok";
+  if (/facebook\.com|fb\.watch|fb\.com|fbcdn/.test(u)) return "facebook";
+  if (/instagram\.com|instagr\.am|cdninstagram/.test(u)) return "instagram";
+  if (/twitter\.com|x\.com|twimg\.com/.test(u)) return "twitter";
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "other";
+  }
+}
+
+/**
+ * Acquire a download slot under both a global cap and a per-platform cap.
+ * Returns an idempotent release fn, or null if either cap is already reached
+ * (caller should respond 503). Pass the source URL/host so the per-platform
+ * budget is tracked independently.
+ */
+export function acquireDownloadSlot(
+  host?: string,
+  opts?: { globalMax?: number; perHostMax?: number }
+): (() => void) | null {
+  const globalMax = opts?.globalMax ?? GLOBAL_MAX_DOWNLOADS;
+  const perHostMax = opts?.perHostMax ?? PER_HOST_MAX_DOWNLOADS;
+  const key = host ? platformKey(host) : "_";
+
+  if (activeDownloads >= globalMax) return null;
+  const hostCount = perHostDownloads.get(key) ?? 0;
+  if (hostCount >= perHostMax) return null;
+
   activeDownloads++;
+  perHostDownloads.set(key, hostCount + 1);
   let released = false;
   return () => {
     if (released) return;
     released = true;
     activeDownloads = Math.max(0, activeDownloads - 1);
+    const next = (perHostDownloads.get(key) ?? 1) - 1;
+    if (next <= 0) perHostDownloads.delete(key);
+    else perHostDownloads.set(key, next);
   };
 }
 

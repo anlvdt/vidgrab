@@ -61,9 +61,19 @@ export default function FormatPicker({
   const { t } = useI18n();
 
   const filtered = useMemo(() => {
-    let list = formats;
-    if (tab === "video") list = formats.filter((f) => f.hasVideo);
-    if (tab === "audio") list = formats.filter((f) => !f.hasVideo && f.hasAudio);
+    // A video-only stream is merged with audio on the server, which pipes the
+    // result as MPEG-TS — a container that only carries H.264/AAC cleanly.
+    // VP9/AV01 video-only picks would download as an undecodable file, so drop
+    // them. Progressive streams (video+audio already muxed) are sent as-is in
+    // their original container, so any codec is fine there.
+    const deliverable = formats.filter((f) => {
+      if (!f.hasVideo || f.hasAudio) return true; // audio-only or progressive
+      return /^(avc1|avc3|h264)/i.test(f.vcodec);
+    });
+
+    let list = deliverable;
+    if (tab === "video") list = deliverable.filter((f) => f.hasVideo);
+    if (tab === "audio") list = deliverable.filter((f) => !f.hasVideo && f.hasAudio);
 
     const seen = new Map<string, Format>();
     for (const f of list) {

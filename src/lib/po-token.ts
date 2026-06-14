@@ -46,47 +46,63 @@ export function invalidateTokenCache(): void {
   tokenCache = null;
 }
 
-// ─── Retry Strategy (from Arroxy's 3-attempt ladder) ─────────
+// ─── Player-client ladders (PoT-aware) ───────────────────────
 
 /**
- * Arroxy's retry strategy adapted for server-side:
+ * YouTube now gates its good formats behind a Proof-of-Origin (PO) token, so
+ * which player clients actually extract depends entirely on whether a PO-token
+ * provider (the bgutil sidecar) is reachable. Two ladders, picked at runtime:
  *
- * Attempt 0: Use player_client=default,-web,-web_safari (skip PoT-needing clients)
- * Attempt 1: Use player_client=ios,web_creator (alternative clients)
- * Attempt 2: Use player_client=mweb,android (mobile clients, usually less restricted)
+ *  WITHOUT a token — empirically (yt-dlp 2026.03.17, datacenter/residential IP)
+ *  only `android_vr` extracts reliably: `tv`/`web_safari` report "DRM
+ *  protected", `mweb` reports "no formats", `ios`/`web_creator` demand sign-in.
+ *  So lead with `android_vr` (gives up to 1080p avc1/vp9/av01) and only then
+ *  give the alternates a shot — YouTube's behaviour varies by video/IP.
  *
- * The key difference from vidgrab's original approach:
- * - Arroxy's PLAYER_CLIENT_FALLBACK specifically excludes web and web_safari
- *   because those are the clients that trigger bot detection most often.
- * - Instead of random rotation, we use a deterministic ladder that starts
- *   with the most reliable option.
+ *  WITH a token (BGUTIL_POT_BASE_URL set) — `tv,web_safari` expose the richest
+ *  formats (1080p+/HDR/AV1) and the plugin mints the token via fetch_pot=auto,
+ *  so lead with them and keep `android_vr` as the guaranteed last rung.
+ *
+ * `use_ad_playback_context=true` (mweb / web_music only) skips the mandatory
+ * preroll-ad wait before a download starts.
  */
 export type RetryStrategy =
   | { kind: 'primary'; attempt: 0 }
   | { kind: 'alternative'; attempt: 1 }
   | { kind: 'fallback'; attempt: 2 };
 
-/**
- * Arroxy's player client fallback — skips clients that demand a PoT.
- * This is the most reliable strategy when tokens aren't available.
- */
-export const PLAYER_CLIENT_FALLBACK = 'youtube:player_client=default,-web,-web_safari';
+const NO_POT_LADDER: Record<number, string> = {
+  0: 'youtube:player_client=android_vr',
+  1: 'youtube:player_client=tv',
+  2: 'youtube:player_client=mweb;use_ad_playback_context=true',
+};
 
-/**
- * Alternative player clients for retry attempts.
- */
-const RETRY_CLIENTS: Record<number, string> = {
-  0: PLAYER_CLIENT_FALLBACK,
-  1: 'youtube:player_client=ios,web_creator',
-  2: 'youtube:player_client=mweb,android',
+const POT_LADDER: Record<number, string> = {
+  0: 'youtube:player_client=tv,web_safari',
+  1: 'youtube:player_client=mweb;use_ad_playback_context=true',
+  2: 'youtube:player_client=android_vr',
 };
 
 /**
- * Get the extractor args for a given retry attempt.
+ * Get the extractor args for a given retry attempt. `hasPot` should be true
+ * when a PO-token provider (BGUTIL_POT_BASE_URL) is configured, which selects
+ * the format-rich ladder instead of the token-free one.
  */
-export function getExtractorArgsForAttempt(attempt: number): string | undefined {
-  return RETRY_CLIENTS[Math.min(attempt, 2)];
+export function getExtractorArgsForAttempt(attempt: number, hasPot = false): string {
+  const ladder = hasPot ? POT_LADDER : NO_POT_LADDER;
+  return ladder[Math.min(attempt, 2)];
 }
+
+/** The lead (attempt-0) client string — used for playlists & single-shot downloads. */
+export function defaultPlayerClient(hasPot = false): string {
+  return getExtractorArgsForAttempt(0, hasPot);
+}
+
+/**
+ * @deprecated Kept for backward compatibility; prefer defaultPlayerClient(hasPot).
+ * Defaults to the token-free lead client.
+ */
+export const PLAYER_CLIENT_FALLBACK = NO_POT_LADDER[0];
 
 /**
  * Merge the bgutil PO-token provider base URL into a `youtube:` extractor-arg
