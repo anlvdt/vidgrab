@@ -6,7 +6,6 @@ import ThemeToggle from "./ThemeToggle";
 import LangToggle from "./LangToggle";
 import TypingHeadline from "./TypingHeadline";
 import PlatformBadge from "./PlatformBadge";
-import { TOTAL_SUPPORTED_SITES } from "@/lib/platforms";
 import { useI18n } from "@/lib/i18n";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
 
@@ -92,7 +91,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
         <p className="text-[var(--text-secondary)] text-lg mb-4 max-w-xl mx-auto leading-relaxed">
           {t.heroSubtitle}{" "}
           <span className="text-[var(--accent-light)] font-medium">
-            {TOTAL_SUPPORTED_SITES.toLocaleString()}+ {t.heroOtherSites}
+            {t.heroOtherSites}
           </span>
           .
         </p>

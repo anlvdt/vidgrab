@@ -234,10 +234,22 @@ function parseFormats(data: any): VideoFormat[] {
   return (data.formats || [])
     .filter((f: any) => f.url || f.manifest_url)
     .map((f: any) => {
-      const hasVideo = f.vcodec !== "none" && !!f.vcodec;
-      const hasAudio = f.acodec !== "none" && !!f.acodec;
+      const width = Number(f.width) || null;
+      const height = Number(f.height) || null;
+      const videoExt = f.video_ext || "";
+      const audioExt = f.audio_ext || "";
+      const hasVideo =
+        (f.vcodec !== "none" && !!f.vcodec) ||
+        !!width ||
+        !!height ||
+        (!!videoExt && videoExt !== "none");
+      const hasAudio =
+        (f.acodec !== "none" && !!f.acodec) ||
+        (!!audioExt && audioExt !== "none") ||
+        !!f.abr ||
+        !!f.asr;
       const resolution = hasVideo
-        ? `${f.width || "?"}x${f.height || "?"}`
+        ? `${width || "?"}x${height || "?"}`
         : "audio only";
       const isHdr = /hdr|vp9\.2|av01.*\.10\./i.test(f.vcodec || "");
 
@@ -251,7 +263,7 @@ function parseFormats(data: any): VideoFormat[] {
         filesize: f.filesize || null,
         filesizeApprox: f.filesize_approx || null,
         tbr: f.tbr || null,
-        quality: hasVideo ? classifyQuality(f.height, f.width) : "Audio",
+        quality: hasVideo ? classifyQuality(height, width) : "Audio",
         hasVideo,
         hasAudio,
         isHdr,

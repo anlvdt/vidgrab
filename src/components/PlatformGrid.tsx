@@ -1,6 +1,6 @@
 "use client";
 
-import { showcasePlatforms, TOTAL_SUPPORTED_SITES } from "@/lib/platforms";
+import { showcasePlatforms } from "@/lib/platforms";
 import { platformIconMap } from "@/components/icons/PlatformIcons";
 import { useI18n } from "@/lib/i18n";
 import { Globe } from "lucide-react";
@@ -12,8 +12,7 @@ export default function PlatformGrid() {
     <section className="py-16 px-4 relative z-10">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-          <span className="gradient-text">{TOTAL_SUPPORTED_SITES.toLocaleString()}+</span>{" "}
-          {t.platformTitle}
+          <span className="gradient-text">{t.platformTitle}</span>
         </h2>
         <p className="text-[var(--text-secondary)] mb-10 max-w-lg mx-auto text-sm sm:text-base">
           {t.platformSubtitle}
@@ -43,7 +42,7 @@ export default function PlatformGrid() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success)] opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--success)]" />
           </span>
-          {(TOTAL_SUPPORTED_SITES - showcasePlatforms.length).toLocaleString()}+ {t.platformMore}
+          {t.platformMore}
         </div>
       </div>
     </section>

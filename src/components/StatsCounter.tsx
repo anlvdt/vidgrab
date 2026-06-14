@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import {
-  Users,
+  ClipboardCheck,
   Download,
   Globe,
-  Clock,
+  LockKeyhole,
   CalendarDays,
   CalendarRange,
   Calendar,
@@ -17,86 +16,33 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
-function useCountUp(target: number, duration = 2000, start = false) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (!start) return;
-    let raf: number;
-    const t0 = performance.now();
-    const animate = (now: number) => {
-      const p = Math.min((now - t0) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.floor(eased * target));
-      if (p < 1) raf = requestAnimationFrame(animate);
-    };
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration, start]);
-  return value;
-}
-
-function fmt(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
-}
-
 export default function StatsCounter() {
-  const { t } = useI18n();
-  const ref = useRef<HTMLDivElement>(null);
-  const [vis, setVis] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVis(true); obs.disconnect(); } },
-      { threshold: 0.2 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  // Main counters
-  const users = useCountUp(25000, 2200, vis);
-  const downloads = useCountUp(500000, 2500, vis);
-  const platforms = useCountUp(1800, 2000, vis);
-  const uptime = useCountUp(99, 1800, vis);
-
-  // Time-based counters
-  const today = useCountUp(1847, 1600, vis);
-  const week = useCountUp(12350, 1800, vis);
-  const month = useCountUp(48200, 2000, vis);
-  const year = useCountUp(500000, 2400, vis);
-
-  // Extra metrics
-  const avgDay = useCountUp(1370, 1500, vis);
-  const peakHour = useCountUp(20, 1200, vis);
-  const successRate = useCountUp(98, 1600, vis);
+  const { locale, t } = useI18n();
+  const isVi = locale === "vi";
 
   const mainStats = [
-    { icon: Users, value: fmt(users) + "+", label: t.statUsers, color: "from-violet-500 to-purple-600" },
-    { icon: Download, value: fmt(downloads) + "+", label: t.statDownloads, color: "from-blue-500 to-cyan-500" },
-    { icon: Globe, value: platforms.toLocaleString() + "+", label: t.statPlatforms, color: "from-pink-500 to-rose-500" },
-    { icon: Clock, value: uptime + "%", label: t.statUptime, color: "from-emerald-500 to-teal-500" },
+    { icon: ClipboardCheck, value: "4", label: t.statUsers, color: "from-violet-500 to-purple-600" },
+    { icon: Download, value: "4", label: t.statDownloads, color: "from-blue-500 to-cyan-500" },
+    { icon: Globe, value: "16", label: t.statPlatforms, color: "from-pink-500 to-rose-500" },
+    { icon: LockKeyhole, value: "2+", label: t.statUptime, color: "from-emerald-500 to-teal-500" },
   ];
 
   const timeStats = [
-    { icon: CalendarDays, value: fmt(today), label: t.statToday, accent: "var(--accent)" },
-    { icon: CalendarRange, value: fmt(week), label: t.statThisWeek, accent: "#60a5fa" },
-    { icon: Calendar, value: fmt(month), label: t.statThisMonth, accent: "#f472b6" },
-    { icon: CalendarCheck, value: fmt(year), label: t.statThisYear, accent: "#34d399" },
+    { icon: CalendarDays, value: isVi ? "Bắt buộc" : "Required", label: t.statToday, accent: "var(--accent)" },
+    { icon: CalendarRange, value: "Instagram / X", label: t.statThisWeek, accent: "#60a5fa" },
+    { icon: Calendar, value: "YouTube", label: t.statThisMonth, accent: "#f472b6" },
+    { icon: CalendarCheck, value: isVi ? "Trình duyệt" : "Browser", label: t.statThisYear, accent: "#34d399" },
   ];
 
   const extraStats = [
-    { icon: TrendingUp, value: fmt(avgDay), label: t.statAvgPerDay },
-    { icon: Timer, value: peakHour + ":00", label: t.statPeakHour },
+    { icon: TrendingUp, value: isVi ? "Video public" : "Public video", label: t.statAvgPerDay },
+    { icon: Timer, value: "yt-dlp + Cobalt", label: t.statPeakHour },
     { icon: Trophy, value: "YouTube", label: t.statTopPlatform },
-    { icon: CheckCircle, value: successRate + "%", label: t.statSuccessRate },
+    { icon: CheckCircle, value: isVi ? "Cố gắng tối đa" : "Best effort", label: t.statSuccessRate },
   ];
 
   return (
-    <section ref={ref} className="py-12 sm:py-16 px-4 relative z-10">
+    <section className="py-12 sm:py-16 px-4 relative z-10">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
           {t.statsTitle}

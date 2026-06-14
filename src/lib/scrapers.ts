@@ -16,6 +16,15 @@ export interface ScraperResult {
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
+function absoluteUrl(value: string | undefined, baseUrl: string): string {
+  if (!value) return "";
+  try {
+    return new URL(value, baseUrl).toString();
+  } catch {
+    return value;
+  }
+}
+
 // ─── TikTok via TikWM (most reliable, HD, no watermark) ─────
 async function scrapeTikTok(url: string): Promise<ScraperResult> {
   try {
@@ -31,9 +40,9 @@ async function scrapeTikTok(url: string): Promise<ScraperResult> {
       return {
         ok: true,
         title: d.title || "TikTok Video",
-        thumbnail: d.cover || d.origin_cover || "",
-        videoUrl: d.hdplay || d.play || "",
-        audioUrl: d.music || "",
+        thumbnail: absoluteUrl(d.cover || d.origin_cover, "https://www.tikwm.com"),
+        videoUrl: absoluteUrl(d.hdplay || d.play, "https://www.tikwm.com"),
+        audioUrl: absoluteUrl(d.music, "https://www.tikwm.com"),
         author: d.author?.nickname || d.author?.unique_id || "",
       };
     }

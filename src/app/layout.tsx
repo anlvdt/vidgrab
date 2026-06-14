@@ -5,9 +5,9 @@ import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VidGrab — Download Videos from 1,800+ Sites in 4K & 8K HDR",
+  title: "VidGrab — Public Video Downloader for Popular Platforms",
   description:
-    "Free video downloader for YouTube, TikTok, Instagram, X, Facebook, Reddit and 1,800+ sites. 4K, 8K HDR, MP3, playlist batch download.",
+    "Free downloader for public YouTube, TikTok, Facebook, Vimeo and yt-dlp compatible links. Some platforms such as Instagram and X may require cookies.",
   keywords: [
     "video downloader",
     "youtube downloader",

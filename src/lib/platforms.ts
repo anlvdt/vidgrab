@@ -113,4 +113,4 @@ export function detectPlatform(url: string): Platform | null {
   return null;
 }
 
-export const TOTAL_SUPPORTED_SITES = 1800;
+export const YTDLP_FALLBACK_LABEL = "yt-dlp";

@@ -32,6 +32,9 @@ function isPrivateIpv4(address: string): boolean {
 
 function isPrivateIpv6(address: string): boolean {
   const normalized = address.toLowerCase();
+  const mappedIpv4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  if (mappedIpv4) return isPrivateIpv4(mappedIpv4);
+
   return (
     normalized === "::" ||
     normalized === "::1" ||
@@ -40,10 +43,7 @@ function isPrivateIpv6(address: string): boolean {
     normalized.startsWith("fe8") ||
     normalized.startsWith("fe9") ||
     normalized.startsWith("fea") ||
-    normalized.startsWith("feb") ||
-    normalized.startsWith("::ffff:127.") ||
-    normalized.startsWith("::ffff:10.") ||
-    normalized.startsWith("::ffff:192.168.")
+    normalized.startsWith("feb")
   );
 }
 
