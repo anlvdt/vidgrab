@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendFile } from "fs/promises";
-import { join } from "path";
+import { consumeRateLimit } from "@/lib/request-guard";
 
-const LOG_PATH = join(process.cwd(), "error-reports.log");
+const LOG_PATH =
+  process.env.VIDGRAB_REPORT_LOG_PATH || "/tmp/vidgrab-error-reports.log";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!consumeRateLimit(req, 5)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const { url, error, description, userAgent, timestamp } = await req.json();
 
     if (!url) {
@@ -14,10 +18,10 @@ export async function POST(req: NextRequest) {
 
     const entry = [
       `[${new Date(timestamp || Date.now()).toISOString()}]`,
-      `URL: ${url}`,
-      `Error: ${error || "N/A"}`,
-      `Description: ${description || "N/A"}`,
-      `UA: ${userAgent || "N/A"}`,
+      `URL: ${clean(url, 500)}`,
+      `Error: ${clean(error, 500) || "N/A"}`,
+      `Description: ${clean(description, 1000) || "N/A"}`,
+      `UA: ${clean(userAgent, 300) || "N/A"}`,
       "---",
     ].join("\n");
 
@@ -28,4 +32,10 @@ export async function POST(req: NextRequest) {
     console.error("Report save error:", err);
     return NextResponse.json({ error: "Failed to save report" }, { status: 500 });
   }
+}
+
+function clean(value: unknown, maxLength: number): string {
+  return typeof value === "string"
+    ? value.replace(/[\r\n]+/g, " ").slice(0, maxLength)
+    : "";
 }

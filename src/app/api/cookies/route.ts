@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, unlink, access } from "fs/promises";
-import { join } from "path";
+import { timingSafeEqual } from "crypto";
 
-const COOKIES_PATH = join(process.cwd(), "cookies.txt");
+const COOKIES_PATH = process.env.VIDGRAB_COOKIES_PATH || "/tmp/vidgrab-cookies.txt";
+
+function isAuthorized(req: NextRequest): boolean {
+  const expected = process.env.VIDGRAB_ADMIN_TOKEN;
+  const provided = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!expected || !provided || expected.length !== provided.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+}
+
+function unauthorized() {
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
+}
 
 // Upload cookies.txt
 export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) return unauthorized();
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -33,7 +45,8 @@ export async function POST(req: NextRequest) {
 }
 
 // Check if cookies exist
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) return unauthorized();
   try {
     await access(COOKIES_PATH);
     return NextResponse.json({ exists: true });
@@ -43,7 +56,8 @@ export async function GET() {
 }
 
 // Delete cookies
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  if (!isAuthorized(req)) return unauthorized();
   try {
     await unlink(COOKIES_PATH);
     return NextResponse.json({ ok: true });

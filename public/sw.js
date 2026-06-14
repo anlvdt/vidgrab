@@ -2,8 +2,7 @@ const CACHE_NAME = "vidgrab-v1";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/icons/icon.svg",
 ];
 
 // Install — cache static assets
