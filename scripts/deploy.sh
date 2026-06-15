@@ -6,7 +6,7 @@
 #
 # What it does:
 #   1. next build (standalone)            — on the Mac (the host can't build: LVE OOM)
-#   2. package .next + static + public    — node_modules excluded (already on server)
+#   2. package standalone runtime         — includes traced node_modules
 #   3. push artifact to a temp GitHub branch (transport — file_upload & temp hosts are blocked)
 #   4. print the ONE command to paste into the cPanel Terminal
 #   5. poll /api/health until the new build is live, then delete the temp branch
@@ -46,12 +46,11 @@ echo "==> [1/5] Building (next build · standalone)…"
 npm run build >/dev/null
 [ -d "$STANDALONE" ] || { echo "FATAL: no $STANDALONE — is output:'standalone' set?" >&2; exit 1; }
 
-echo "==> [2/5] Packaging $ART (fold static + public, exclude node_modules)…"
+echo "==> [2/5] Packaging $ART (fold static + public + traced node_modules)…"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
 [ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
 rm -f "$REPO_ROOT/$ART"
-( cd "$STANDALONE" && COPYFILE_DISABLE=1 tar --exclude='node_modules' --exclude='._*' \
-    -czf "$REPO_ROOT/$ART" . )
+( cd "$STANDALONE" && COPYFILE_DISABLE=1 tar --exclude='._*' -czf "$REPO_ROOT/$ART" . )
 echo "    artifact: $(du -h "$REPO_ROOT/$ART" | cut -f1)"
 
 echo "==> [3/5] Pushing artifact to temp branch ${DEPLOY_BRANCH}..."

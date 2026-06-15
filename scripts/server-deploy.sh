@@ -2,7 +2,7 @@
 # ─── VidGrab SERVER-side deploy ───
 # Runs on the iNET cPanel host (CloudLinux + Passenger). Downloads a prebuilt
 # Next.js standalone artifact and overlays it onto the live web root, keeping
-# node_modules / bin / start.sh / tmp untouched, then restarts Passenger.
+# bin / start.sh / tmp untouched, then restarts Passenger.
 #
 # Usage (paste into cPanel Terminal):
 #   curl -fsSL "<raw-url>/scripts/server-deploy.sh" | bash -s "<raw-url>/<artifact>.tar.gz"
@@ -44,10 +44,18 @@ rm -rf "$W/.next.new"
 cp -a "$S/.next" "$W/.next.new"
 rm -rf "$W/.next"
 mv "$W/.next.new" "$W/.next"
+if [ -d "$S/node_modules" ]; then
+  rm -rf "$W/node_modules.new"
+  cp -a "$S/node_modules" "$W/node_modules.new"
+  rm -rf "$W/node_modules"
+  mv "$W/node_modules.new" "$W/node_modules"
+fi
 cp -a "$S/server.js"   "$W/server.js"
 cp -a "$S/package.json" "$W/package.json"
 mkdir -p "$W/public"
 cp -a "$S/public/." "$W/public/" 2>/dev/null || true
+mkdir -p "$W/scripts"
+cp -a "$S/scripts/." "$W/scripts/" 2>/dev/null || true
 
 echo "==> [5/6] restarting Passenger"
 mkdir -p "$W/tmp"
