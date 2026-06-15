@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type MouseEvent } from "react";
 import Hero from "@/components/Hero";
 import VideoCard from "@/components/VideoCard";
 import VideoPreview from "@/components/VideoPreview";
@@ -22,6 +22,7 @@ import ErrorReport from "@/components/ErrorReport";
 import { detectPlatform } from "@/lib/platforms";
 import { useI18n } from "@/lib/i18n";
 import { AlertCircle, Download, Music } from "lucide-react";
+import { applyLogoRemovalParams, getLogoRemovalMode } from "@/lib/download-settings";
 
 interface VideoFormat {
   formatId: string;
@@ -127,6 +128,32 @@ export default function Home() {
     setConfetti(false);
   }, []);
 
+  const buildDirectDownloadUrl = useCallback(
+    (targetUrl: string, audioOnly = false) => {
+      const params = new URLSearchParams({
+        url: targetUrl,
+        title: videoInfo?.title || "video",
+      });
+      if (audioOnly) params.set("audio", "true");
+      applyLogoRemovalParams(params, !audioOnly);
+      return `/api/download?${params.toString()}`;
+    },
+    [videoInfo?.title]
+  );
+
+  const handleDirectVideoDownload = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>, targetUrl: string) => {
+      if (getLogoRemovalMode() !== "blur") {
+        handleDownloadStart();
+        return;
+      }
+      event.preventDefault();
+      handleDownloadStart();
+      window.open(buildDirectDownloadUrl(targetUrl), "_blank");
+    },
+    [buildDirectDownloadUrl, handleDownloadStart]
+  );
+
   return (
     <>
       <AuroraBackground />
@@ -186,7 +213,9 @@ export default function Home() {
                     href={videoInfo.directUrl || videoInfo.cobaltUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={handleDownloadStart}
+                    onClick={(event) =>
+                      handleDirectVideoDownload(event, videoInfo.directUrl || videoInfo.cobaltUrl || "")
+                    }
                     className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg hover:scale-[1.02]"
                     style={{ boxShadow: "0 4px 20px var(--accent-glow)" }}
                   >

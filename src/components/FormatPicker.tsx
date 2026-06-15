@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import WaveformVisualizer from "./WaveformVisualizer";
 import { useI18n } from "@/lib/i18n";
+import { applyLogoRemovalParams } from "@/lib/download-settings";
 
 interface Format {
   formatId: string;
@@ -101,6 +102,7 @@ export default function FormatPicker({
       if (sponsorBlock !== "off") {
         params.set("sponsorblock", sponsorBlock);
       }
+      applyLogoRemovalParams(params, params.get("audio") !== "true");
       window.open(`/api/download?${params.toString()}`, "_blank");
     },
     [onDownloadStart]

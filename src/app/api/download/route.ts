@@ -5,6 +5,7 @@ import { pytubefixDownload, isPytubefixFormat } from "@/lib/pytubefix";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
 import { classifyStderr } from "@/lib/po-token";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
+import { applyLogoRemoval, parseLogoRemoval } from "@/lib/logo-removal";
 import {
   acquireDownloadSlot,
   assertPublicHttpUrl,
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
   const progressive = searchParams.get("progressive") === "true";
   const title = searchParams.get("title") || "video";
   const direct = searchParams.get("direct") === "true";
+  const logoRemoval = parseLogoRemoval(searchParams);
 
   if (!rawUrl) {
     return new Response(JSON.stringify({ error: "Missing URL" }), {
@@ -98,6 +100,12 @@ export async function GET(req: NextRequest) {
 
   // Commit a 200 + stream only after the first byte is produced; release the
   // concurrency slot when the stream ends (guardStream's release is idempotent).
+  const prepare = async (ds: DownloadStream): Promise<DownloadStream> => {
+    const output = audioOnly ? ds : applyLogoRemoval(ds, logoRemoval);
+    await output.firstByte;
+    return output;
+  };
+
   const respond = (ds: DownloadStream): Response =>
     new Response(guardStream(ds.stream, release), { headers: streamHeaders });
 
@@ -106,8 +114,8 @@ export async function GET(req: NextRequest) {
     if (!isYouTubeUrl(url)) return null;
     try {
       const pf = await pytubefixDownload(url, formatId, audioOnly);
-      await pf.firstByte;
-      return respond(pf);
+      const output = await prepare(pf);
+      return respond(output);
     } catch {
       return null; // fall through to the next fallback
     }
@@ -154,8 +162,9 @@ export async function GET(req: NextRequest) {
     }
   );
 
+  let output: DownloadStream;
   try {
-    await firstByte;
+    output = await prepare({ stream, firstByte, abort });
   } catch (err) {
     abort();
     const failure = err as DownloadFailure;
@@ -173,5 +182,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return respond({ stream, firstByte, abort });
+  return respond(output);
 }
