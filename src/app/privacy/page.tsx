@@ -31,10 +31,10 @@ export default function PrivacyPage() {
             <>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Dữ liệu chúng tôi thu thập</h2>
-                <p>VidGrab không thu thập, lưu trữ, hoặc chia sẻ bất kỳ dữ liệu cá nhân nào. Cụ thể:</p>
+                <p>VidGrab không yêu cầu tài khoản và không dùng cookies theo dõi. Một số dữ liệu kỹ thuật có thể được xử lý để vận hành tính năng tải xuống:</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li>Không yêu cầu đăng ký tài khoản.</li>
-                  <li>Không lưu URL bạn tải — mọi xử lý diễn ra trong phiên làm việc.</li>
+                  <li>URL bạn nhập được gửi đến máy chủ để trích xuất thông tin và tải media; URL không được lưu lâu dài trừ khi bạn gửi báo cáo lỗi.</li>
                   <li>Không sử dụng cookies theo dõi.</li>
                   <li>Lịch sử tải được lưu cục bộ trên trình duyệt của bạn (localStorage), không gửi đến máy chủ.</li>
                   <li>Cookies xác thực tùy chọn chỉ được quản trị viên cấu hình trực tiếp trên máy chủ, không upload từ giao diện công khai.</li>
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Báo cáo lỗi</h2>
-                <p>Khi bạn gửi báo cáo lỗi, chúng tôi lưu URL bị lỗi, thông báo lỗi, mô tả bạn cung cấp và thông tin User-Agent của trình duyệt để chẩn đoán.</p>
+                <p>Khi bạn gửi báo cáo lỗi, chúng tôi lưu URL bị lỗi đã lược bỏ query/hash, thông báo lỗi, mô tả bạn cung cấp và thông tin User-Agent của trình duyệt để chẩn đoán.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Liên hệ</h2>
@@ -57,10 +57,10 @@ export default function PrivacyPage() {
             <>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Data We Collect</h2>
-                <p>VidGrab does not collect, store, or share any personal data. Specifically:</p>
+                <p>VidGrab does not require accounts and does not use tracking cookies. Some technical data is processed to operate downloads:</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li>No account registration required.</li>
-                  <li>URLs are not stored — all processing happens within the session.</li>
+                  <li>Submitted URLs are sent to the server for extraction and media download; URLs are not retained unless you submit an error report.</li>
                   <li>No tracking cookies.</li>
                   <li>Download history is stored locally in your browser (localStorage), never sent to our servers.</li>
                   <li>Optional authentication cookies are configured directly on the server by an administrator and cannot be uploaded through the public interface.</li>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Error Reports</h2>
-                <p>When you submit an error report, we store the failed URL, error message, your description, and browser User-Agent information for diagnostics.</p>
+                <p>When you submit an error report, we store the failed URL with query/hash removed, error message, your description, and browser User-Agent information for diagnostics.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Contact</h2>

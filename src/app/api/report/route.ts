@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     const entry = [
       `[${new Date(timestamp || Date.now()).toISOString()}]`,
-      `URL: ${clean(url, 500)}`,
+      `URL: ${redactUrl(url)}`,
       `Error: ${clean(error, 500) || "N/A"}`,
       `Description: ${clean(description, 1000) || "N/A"}`,
       `UA: ${clean(userAgent, 300) || "N/A"}`,
@@ -38,4 +38,16 @@ function clean(value: unknown, maxLength: number): string {
   return typeof value === "string"
     ? value.replace(/[\r\n]+/g, " ").slice(0, maxLength)
     : "";
+}
+
+function redactUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  try {
+    const parsed = new URL(value);
+    parsed.search = parsed.search ? "?[redacted]" : "";
+    parsed.hash = "";
+    return clean(parsed.toString(), 500);
+  } catch {
+    return clean(value, 500);
+  }
 }

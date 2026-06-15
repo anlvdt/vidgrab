@@ -180,6 +180,7 @@ export function detectScrapablePlatform(url: string): string | null {
   if (/twitter\.com|x\.com/i.test(url)) return "twitter";
   if (/instagram\.com|instagr\.am/i.test(url)) return "instagram";
   if (/facebook\.com|fb\.watch|fb\.com/i.test(url)) return "facebook";
+  if (/reddit\.com|redd\.it/i.test(url)) return "reddit";
   return null;
 }
 
@@ -190,6 +191,37 @@ export async function scrapeVideo(url: string): Promise<ScraperResult> {
     case "twitter": return scrapeTwitter(url);
     case "instagram": return scrapeInstagram(url);
     case "facebook": return scrapeFacebook(url);
+    case "reddit": return scrapeReddit(url);
     default: return { ok: false, error: "Not supported" };
+  }
+}
+
+// ─── Reddit via Reddit API ───────────────────────────────────
+async function scrapeReddit(url: string): Promise<ScraperResult> {
+  try {
+    const match = url.match(/reddit\.com\/r\/[\w]+\/comments\/([a-z0-9]+)/i)
+      || url.match(/redd\.it\/([a-z0-9]+)/i);
+    if (!match) return { ok: false, error: "Invalid Reddit URL" };
+    const postId = match[1];
+    const res = await fetch(`https://www.reddit.com/comments/${postId}.json`, {
+      headers: { "User-Agent": UA, "Accept": "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return { ok: false, error: "Reddit API error" };
+    const data = await res.json();
+    const post = data[0]?.data?.children?.[0]?.data;
+    if (!post) return { ok: false, error: "Post not found" };
+    const videoUrl = post.media?.reddit_video?.fallback_url || post.url?.replace(/\.png|\.jpg|\.jpeg$/, ".mp4");
+    const isVideo = post.is_video && post.media?.reddit_video;
+    if (!isVideo && !post.url) return { ok: false, error: "No video in this post" };
+    return {
+      ok: true,
+      title: post.title || "Reddit Video",
+      thumbnail: post.thumbnail || post.url?.replace(/\.mp4$/, ".jpg"),
+      videoUrl: isVideo ? videoUrl : post.url,
+      author: post.author || "",
+    };
+  } catch (error: unknown) {
+    return { ok: false, error: error instanceof Error ? error.message : "Reddit failed" };
   }
 }

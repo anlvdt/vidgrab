@@ -16,19 +16,27 @@
  * remains the primary path for exact quality selection.
  */
 import { spawn, execFile } from "child_process";
-import { promisify } from "util";
 import path from "path";
+import { promisify } from "util";
 import { sanitizeUrl } from "./url-sanitizer";
 import { classifyStderr } from "./po-token";
+import {
+  isPytubefixFormat,
+  pytubefixFormatId,
+  PYTUBEFIX_FORMAT_PREFIX,
+} from "./pytubefix-format";
 import type { VideoFormat, VideoInfo, DownloadFailure, DownloadStream } from "./ytdlp";
 
 const execFileAsync = promisify(execFile);
 
 const PYTHON_BIN = process.env.PYTHON_BIN || "python3";
 const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-const HELPER_PATH = path.join(process.cwd(), "scripts", "pytubefix_helper.py");
-
-const FORMAT_PREFIX = "pf-";
+const DEFAULT_HELPER_PATH = path.join(
+  /*turbopackIgnore: true*/ process.cwd(),
+  "scripts",
+  "pytubefix_helper.py"
+);
+const HELPER_PATH = process.env.PYTUBEFIX_HELPER_PATH || DEFAULT_HELPER_PATH;
 
 // ─── Raw helper output shapes ────────────────────────────────
 interface RawFormat {
@@ -81,11 +89,6 @@ function classifyQuality(resolution: string): string {
   return "Audio";
 }
 
-/** Is this a pytubefix-issued format id? */
-export function isPytubefixFormat(formatId?: string | null): boolean {
-  return !!formatId && formatId.startsWith(FORMAT_PREFIX);
-}
-
 // ─── Extraction ──────────────────────────────────────────────
 async function extract(url: string): Promise<RawInfo> {
   const { stdout } = await execFileAsync(
@@ -108,7 +111,7 @@ export async function getPytubefixInfo(url: string): Promise<VideoInfo> {
   const data = await extract(url);
 
   const formats: VideoFormat[] = data.formats.map((f) => ({
-    formatId: `${FORMAT_PREFIX}${f.itag}`,
+    formatId: pytubefixFormatId(f.itag),
     ext: f.ext || (f.has_video ? "mp4" : "m4a"),
     resolution: f.resolution || (f.has_audio && !f.has_video ? "audio" : ""),
     fps: f.fps ?? null,
@@ -214,7 +217,7 @@ function planFfmpeg(
   // Resolve a requested pytubefix itag, if any.
   let target: RawFormat | undefined;
   if (isPytubefixFormat(formatId)) {
-    const itag = parseInt(formatId!.slice(FORMAT_PREFIX.length), 10);
+    const itag = parseInt(formatId!.slice(PYTUBEFIX_FORMAT_PREFIX.length), 10);
     target = formats.find((f) => f.itag === itag);
   }
 

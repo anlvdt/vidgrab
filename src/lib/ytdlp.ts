@@ -164,6 +164,10 @@ export interface DownloadOptions {
   cookies?: boolean;
   /** SponsorBlock mode: "mark" (chapter markers) or "remove" (cut segments) */
   sponsorBlock?: string;
+  /** Clip start time (e.g., "0:00" or "30") */
+  clipStart?: string;
+  /** Clip end time (e.g., "1:30" or "90") */
+  clipEnd?: string;
 }
 
 // ─── Base Args Builder ───────────────────────────────────────
@@ -508,6 +512,12 @@ export function buildDownloadArgs(
     }
   }
 
+  if (opts?.clipStart || opts?.clipEnd) {
+    const start = opts.clipStart || "0";
+    const end = opts.clipEnd || "";
+    args.push("--download-sections", `*${start}-${end}`);
+  }
+
   args.push("-o", "-", cleanUrl);
   return args;
 }
@@ -689,6 +699,12 @@ export function spawnDownloadWithRetry(
           } else {
             args.push("--sponsorblock-mark", categories);
           }
+        }
+
+        if (opts?.clipStart || opts?.clipEnd) {
+          const start = opts.clipStart || "0";
+          const end = opts.clipEnd || "";
+          args.push("--download-sections", `*${start}-${end}`);
         }
 
         args.push("-o", "-", cleanUrl);

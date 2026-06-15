@@ -7,6 +7,7 @@ services:
     environment:
       - NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
       - COBALT_API_URL=http://cobalt:9000
+      - VIDGRAB_COOKIES_PATH=/app/cookies.txt
       # PO-token provider sidecar — biggest reliability lever for YouTube
       # on datacenter IPs. yt-dlp's bgutil plugin fetches tokens from here.
       - BGUTIL_POT_BASE_URL=http://bgutil-pot:4416

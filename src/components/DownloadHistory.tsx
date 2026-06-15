@@ -20,11 +20,17 @@ export interface HistoryEntry {
 
 const STORAGE_KEY = "vidgrab-history";
 const MAX_ENTRIES = 50;
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days expiration
 
 function readHistory(): HistoryEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const list: HistoryEntry[] = raw ? JSON.parse(raw) : [];
+    // Filter expired entries (>7 days) and enforce max entries
+    const now = Date.now();
+    return list
+      .filter((h) => now - h.timestamp < MAX_AGE_MS)
+      .slice(0, MAX_ENTRIES);
   } catch {
     return [];
   }
@@ -46,7 +52,10 @@ export function addToHistory(entry: Omit<HistoryEntry, "id" | "timestamp">) {
       timestamp: Date.now(),
     };
 
-    const updated = [newEntry, ...list].slice(0, MAX_ENTRIES);
+    // Filter expired before adding new entry
+    const now = Date.now();
+    const validList = list.filter((h) => now - h.timestamp < MAX_AGE_MS);
+    const updated = [newEntry, ...validList].slice(0, MAX_ENTRIES);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("vidgrab-history-update"));
   } catch {

@@ -42,7 +42,7 @@ export default function PlaylistQueue({ entries, onDownloadStart }: PlaylistQueu
         setTimeout(() => {
           const params = new URLSearchParams({ url: entry.url, title: entry.title });
           window.open(`/api/download?${params.toString()}`, "_blank");
-        }, i * 1500);
+        }, i * 2500);
       });
   };
 
@@ -68,6 +68,15 @@ export default function PlaylistQueue({ entries, onDownloadStart }: PlaylistQueu
           <div
             key={entry.id}
             onClick={() => toggleSelect(entry.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggleSelect(entry.id);
+              }
+            }}
+            role="checkbox"
+            tabIndex={0}
+            aria-checked={selected.has(entry.id)}
             className={`flex items-center gap-2 sm:gap-3 glass-card rounded-xl px-2.5 sm:px-3 py-2.5 cursor-pointer transition-all ${
               selected.has(entry.id) ? "" : "opacity-50"
             }`}

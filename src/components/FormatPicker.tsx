@@ -59,6 +59,9 @@ export default function FormatPicker({
 }: FormatPickerProps) {
   const [tab, setTab] = useState<FilterTab>("all");
   const [showAll, setShowAll] = useState(false);
+  const [clipMode, setClipMode] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const { t } = useI18n();
 
   const filtered = useMemo(() => {
@@ -103,9 +106,16 @@ export default function FormatPicker({
         params.set("sponsorblock", sponsorBlock);
       }
       applyLogoRemovalParams(params, params.get("audio") !== "true");
+      // Add clip range if specified
+      if (clipMode && startTime) {
+        params.set("start", startTime);
+      }
+      if (clipMode && endTime) {
+        params.set("end", endTime);
+      }
       window.open(`/api/download?${params.toString()}`, "_blank");
     },
-    [onDownloadStart]
+    [clipMode, endTime, onDownloadStart, startTime]
   );
 
   const handleDownload = (format: Format) => {
@@ -156,9 +166,44 @@ export default function FormatPicker({
           <Music className="w-4 h-4" />
           {t.audioOnly}
         </button>
+
+        <button
+          onClick={() => setClipMode(!clipMode)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${clipMode ? "bg-[var(--accent)] text-white" : "glass text-[var(--text-secondary)]"}`}
+        >
+          <Film className="w-4 h-4" />
+          {clipMode ? "Clip Mode" : "Clip"}
+        </button>
       </div>
 
       {tab === "audio" && <WaveformVisualizer />}
+
+      {clipMode && (
+        <div className="flex items-center gap-3 justify-center mb-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="clip-start" className="text-xs text-[var(--text-muted)]">Start</label>
+            <input
+              id="clip-start"
+              type="text"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              placeholder="0:00"
+              className="w-20 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-sm border border-[var(--border)] focus:border-[var(--accent)] outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="clip-end" className="text-xs text-[var(--text-muted)]">End</label>
+            <input
+              id="clip-end"
+              type="text"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              placeholder="end"
+              className="w-20 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-sm border border-[var(--border)] focus:border-[var(--accent)] outline-none"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-1 glass rounded-xl p-1 mb-5 max-w-xs mx-auto">
         {(["all", "video", "audio"] as FilterTab[]).map((tt) => (

@@ -4,7 +4,21 @@ import type { NextRequest } from "next/server";
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
+const TRUST_PROXY_HEADERS = process.env.VIDGRAB_TRUST_PROXY_HEADERS === "true";
 const buckets = new Map<string, { count: number; resetAt: number }>();
+
+// Periodic cleanup to prevent memory leak from expired buckets
+let lastCleanup = Date.now();
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+function cleanupExpiredBuckets(): void {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}
 
 // Concurrency: a global cap across all downloads plus a per-platform cap, so a
 // burst of YouTube downloads can't starve TikTok/Facebook (and vice-versa) and
@@ -78,6 +92,10 @@ export async function assertPublicHttpUrl(rawUrl: string): Promise<string> {
 }
 
 export function getClientIp(req: NextRequest): string {
+  if (!TRUST_PROXY_HEADERS) {
+    return "direct";
+  }
+
   return (
     req.headers.get("cf-connecting-ip") ||
     req.headers.get("x-real-ip") ||
@@ -87,6 +105,7 @@ export function getClientIp(req: NextRequest): string {
 }
 
 export function consumeRateLimit(req: NextRequest, limit = MAX_REQUESTS_PER_WINDOW): boolean {
+  cleanupExpiredBuckets();
   const now = Date.now();
   const key = getClientIp(req);
   const bucket = buckets.get(key);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, type MouseEvent } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Hero from "@/components/Hero";
 import VideoCard from "@/components/VideoCard";
 import VideoPreview from "@/components/VideoPreview";
@@ -133,6 +134,7 @@ export default function Home() {
       const params = new URLSearchParams({
         url: targetUrl,
         title: videoInfo?.title || "video",
+        direct: "true",
       });
       if (audioOnly) params.set("audio", "true");
       applyLogoRemovalParams(params, !audioOnly);
@@ -155,7 +157,7 @@ export default function Home() {
   );
 
   return (
-    <>
+    <ErrorBoundary>
       <AuroraBackground />
       <ConfettiBurst active={confetti} onDone={handleConfettiDone} />
 
@@ -286,6 +288,6 @@ export default function Home() {
       </main>
 
       <SettingsPanel />
-    </>
+    </ErrorBoundary>
   );
 }

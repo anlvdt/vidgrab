@@ -72,9 +72,14 @@ export default function SettingsPanel() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-lg mx-4 mb-4 sm:mb-0 glass-card rounded-2xl p-5 sm:p-6">
+          <div
+            className="relative w-full max-w-lg mx-4 mb-4 sm:mb-0 glass-card rounded-2xl p-5 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+          >
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-lg flex items-center gap-2">
+              <h3 id="settings-title" className="font-bold text-lg flex items-center gap-2">
                 <Settings className="w-5 h-5 text-[var(--accent-light)]" />
                 {vi ? "Cài Đặt" : "Settings"}
               </h3>
@@ -110,6 +115,7 @@ export default function SettingsPanel() {
                   <button
                     key={option.value}
                     onClick={() => saveSponsorBlock(option.value)}
+                    aria-pressed={sponsorBlock === option.value}
                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       sponsorBlock === option.value
                         ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
@@ -140,6 +146,7 @@ export default function SettingsPanel() {
                     <button
                       key={option.value}
                       onClick={() => saveLogoRemoval(option.value as LogoRemovalMode)}
+                      aria-pressed={logoRemoval === option.value}
                       className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                         logoRemoval === option.value
                           ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
@@ -162,6 +169,7 @@ export default function SettingsPanel() {
                       <button
                         key={option.value}
                         onClick={() => saveLogoPosition(option.value as LogoPosition)}
+                        aria-pressed={logoPosition === option.value}
                         className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                           logoPosition === option.value
                             ? "bg-[var(--accent)] text-white shadow-md"

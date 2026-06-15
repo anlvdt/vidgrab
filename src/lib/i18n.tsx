@@ -100,6 +100,12 @@ const en = {
   faq6A: "Yes, VidGrab is completely free. No hidden fees.",
   faq7Q: "Is my download history saved?",
   faq7A: "Yes, your recent downloads are saved locally in your browser. Nothing is sent to any server. You can clear your history at any time.",
+  faq8Q: "Why do some downloads not show a platform watermark?",
+  faq8A: "Some public sources expose media files without player overlays, while others include branding in the video itself. VidGrab does not guarantee watermark-free downloads.",
+  faq9Q: "Can I remove a logo from a video?",
+  faq9A: "VidGrab can blur a selected corner before download. Use this only for videos you own or have permission to edit.",
+  faq10Q: "Can I download only a part of a video?",
+  faq10A: "Yes! You can specify start/end times to download just a clip, useful for ringtones or specific moments.",
 
   // Stats
   statsTitle: "Compatibility Snapshot",
@@ -261,6 +267,12 @@ const vi: typeof en = {
   faq6A: "Có, VidGrab hoàn toàn miễn phí. Không có phí ẩn.",
   faq7Q: "Lịch sử tải có được lưu không?",
   faq7A: "Có, lịch sử tải gần đây được lưu cục bộ trong trình duyệt. Không có gì được gửi đến máy chủ. Bạn có thể xóa lịch sử bất cứ lúc nào.",
+  faq8Q: "Tại sao một số video tải về không có logo nền tảng?",
+  faq8A: "Một số nguồn public trả về file media không có lớp phủ trình phát, trong khi nguồn khác nhúng branding trực tiếp trong video. VidGrab không cam kết mọi video đều không có watermark.",
+  faq9Q: "Tôi có thể che logo trong video không?",
+  faq9A: "VidGrab có thể làm mờ một góc được chọn trước khi tải. Chỉ dùng cho video bạn sở hữu hoặc có quyền chỉnh sửa.",
+  faq10Q: "Tôi có thể tải một phần của video không?",
+  faq10A: "Có! Bạn có thể chỉ định thời gian bắt đầu/kết thúc để tải clip, hữu ích cho nhạc chuông.",
 
   statsTitle: "Tình Trạng Tương Thích",
   statsSubtitle: "Tóm tắt năng lực hiện tại dựa trên test local và các luồng trích xuất trong app.",

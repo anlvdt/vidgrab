@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVideoInfo, getPlaylistInfo, ensureYtdlpFresh } from "@/lib/ytdlp";
-import { getPytubefixInfo } from "@/lib/pytubefix";
 import { scrapeVideo, detectScrapablePlatform } from "@/lib/scrapers";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
@@ -52,7 +50,15 @@ function parseError(stderr: string): string {
   return "Failed to fetch video info.";
 }
 
-function scraperResponse(result: ScraperResult) {
+async function publicDirectUrl(value?: string): Promise<string> {
+  if (!value) return "";
+  return assertPublicHttpUrl(value);
+}
+
+async function scraperResponse(result: ScraperResult) {
+  const directUrl = await publicDirectUrl(result.videoUrl);
+  const directAudioUrl = await publicDirectUrl(result.audioUrl);
+
   return NextResponse.json({
     id: "scraper",
     title: result.title || "Video",
@@ -65,8 +71,8 @@ function scraperResponse(result: ScraperResult) {
     description: "",
     formats: [],
     isPlaylist: false,
-    directUrl: result.videoUrl,
-    directAudioUrl: result.audioUrl || "",
+    directUrl,
+    directAudioUrl,
   });
 }
 
@@ -89,9 +95,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Trigger background yt-dlp freshness check
-    ensureYtdlpFresh().catch(() => {});
-
     // Sanitize URL: strip tracking params, unwrap redirects (Arroxy feature)
     let trimmedUrl: string;
     try {
@@ -104,6 +107,10 @@ export async function POST(req: NextRequest) {
     }
     const opts = {};
     const isScrapable = !!detectScrapablePlatform(trimmedUrl);
+    const ytdlp = await import("@/lib/ytdlp");
+
+    // Trigger background yt-dlp freshness check
+    ytdlp.ensureYtdlpFresh().catch(() => {});
 
     // ── Strategy A: For TikTok/Instagram/Twitter/Facebook ──
     if (isScrapable && !playlist) {
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
       try {
         const result = await scrapeVideo(trimmedUrl);
         if (result.ok && result.videoUrl) {
-          return scraperResponse(result);
+          return await scraperResponse(result);
         }
       } catch {
         /* scraper failed, try yt-dlp */
@@ -120,7 +127,7 @@ export async function POST(req: NextRequest) {
       // Step 2: Try yt-dlp (with retry & player client rotation)
       let ytStderr = "";
       try {
-        const info = await getVideoInfo(trimmedUrl, opts);
+        const info = await ytdlp.getVideoInfo(trimmedUrl, opts);
         return NextResponse.json(info);
       } catch (ytErr) {
         const e = ytErr as Error & { stderr?: string };
@@ -149,9 +156,9 @@ export async function POST(req: NextRequest) {
     // yt-dlp with automatic retry & player client rotation
     try {
       if (playlist) {
-        return NextResponse.json(await getPlaylistInfo(trimmedUrl, opts));
+        return NextResponse.json(await ytdlp.getPlaylistInfo(trimmedUrl, opts));
       }
-      return NextResponse.json(await getVideoInfo(trimmedUrl, opts));
+      return NextResponse.json(await ytdlp.getVideoInfo(trimmedUrl, opts));
     } catch (ytErr: unknown) {
       const error = ytErr as Error & { stderr?: string; code?: string };
       const stderr = error.stderr || error.message || "";
@@ -167,6 +174,7 @@ export async function POST(req: NextRequest) {
       // real formats + metadata, so prefer it over Cobalt's blind direct URL.
       if (isYouTubeUrl(trimmedUrl) && !playlist) {
         try {
+          const { getPytubefixInfo } = await import("@/lib/pytubefix");
           return NextResponse.json(await getPytubefixInfo(trimmedUrl));
         } catch {
           /* pytubefix also failed — fall through to Cobalt */
@@ -186,6 +194,8 @@ export async function POST(req: NextRequest) {
         try {
           const cobaltResult = await cobaltDownload(trimmedUrl);
           if (cobaltResult.ok && cobaltResult.url) {
+            const cobaltUrl = await publicDirectUrl(cobaltResult.url);
+            const cobaltAudioUrl = await publicDirectUrl(cobaltResult.audioUrl);
             return NextResponse.json({
               id: "cobalt",
               title: "Video",
@@ -198,8 +208,8 @@ export async function POST(req: NextRequest) {
               description: "",
               formats: [],
               isPlaylist: false,
-              cobaltUrl: cobaltResult.url,
-              cobaltAudioUrl: cobaltResult.audioUrl || "",
+              cobaltUrl,
+              cobaltAudioUrl,
               cobaltPicker: cobaltResult.picker,
             });
           }

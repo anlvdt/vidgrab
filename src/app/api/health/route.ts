@@ -6,6 +6,8 @@ import path from "path";
 
 const execFileAsync = promisify(execFile);
 const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
+const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
+const PYTHON_BIN = process.env.PYTHON_BIN || "python3";
 
 // Cache the version probe so we don't spawn yt-dlp on every health hit.
 let cached: { version: string; checkedAt: number } | null = null;
@@ -20,6 +22,28 @@ async function ytdlpVersion(): Promise<string> {
     cached = { version: "unavailable", checkedAt: Date.now() };
   }
   return cached.version;
+}
+
+async function binaryVersion(bin: string, args: string[], timeout = 5000): Promise<string> {
+  try {
+    const { stdout, stderr } = await execFileAsync(bin, args, { timeout });
+    return (stdout || stderr).split("\n")[0]?.trim() || "available";
+  } catch {
+    return "unavailable";
+  }
+}
+
+async function pytubefixStatus(): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync(
+      PYTHON_BIN,
+      ["-c", "import pytubefix; print(getattr(pytubefix, '__version__', 'available'))"],
+      { timeout: 5000 }
+    );
+    return stdout.trim() || "available";
+  } catch {
+    return "unavailable";
+  }
 }
 
 function getBuildId(): string {
@@ -41,12 +65,15 @@ function getBuildId(): string {
  */
 export async function GET() {
   return NextResponse.json({
+    checkedAt: new Date().toISOString(),
     ok: true,
     buildId: getBuildId(),
     ytdlpVersion: await ytdlpVersion(),
     engines: {
-      ytdlp: true,
-      pytubefix: true,
+      ytdlp: (await ytdlpVersion()) !== "unavailable",
+      ffmpeg: await binaryVersion(FFMPEG_BIN, ["-version"]),
+      python: await binaryVersion(PYTHON_BIN, ["--version"]),
+      pytubefix: await pytubefixStatus(),
       cobalt: !!process.env.COBALT_API_URL,
     },
     poToken: !!process.env.BGUTIL_POT_BASE_URL,
@@ -54,4 +81,3 @@ export async function GET() {
     proxy: !!process.env.YTDLP_PROXY,
   });
 }
-

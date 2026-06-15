@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { spawnDownloadWithRetry, ensureYtdlpFresh } from "@/lib/ytdlp";
 import type { DownloadFailure, DownloadStream } from "@/lib/ytdlp";
-import { pytubefixDownload, isPytubefixFormat } from "@/lib/pytubefix";
+import { isPytubefixFormat } from "@/lib/pytubefix-format";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
+import { sanitizeFilename } from "@/lib/filename-sanitizer";
 import { classifyStderr } from "@/lib/po-token";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
-import { applyLogoRemoval, parseLogoRemoval } from "@/lib/logo-removal";
+import { parseLogoRemoval } from "@/lib/logo-removal-options";
 import {
   acquireDownloadSlot,
   assertPublicHttpUrl,
@@ -13,8 +13,118 @@ import {
   guardStream,
 } from "@/lib/request-guard";
 
+const MAX_DIRECT_REDIRECTS = 5;
+const DIRECT_MEDIA_HOSTS = [
+  "googlevideo.com",
+  "tiktokcdn.com",
+  "tikwm.com",
+  "twimg.com",
+  "fbcdn.net",
+  "cdninstagram.com",
+  "v.redd.it",
+  "redditmedia.com",
+  "redd.it",
+];
+
 function isYouTubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function isAllowedDirectMediaHost(url: string): boolean {
+  const hostname = new URL(url).hostname.toLowerCase();
+  return DIRECT_MEDIA_HOSTS.some(
+    (host) => hostname === host || hostname.endsWith(`.${host}`)
+  );
+}
+
+async function fetchPublicDirectStream(
+  inputUrl: string,
+  redirects = 0
+): Promise<DownloadStream> {
+  if (redirects > MAX_DIRECT_REDIRECTS) {
+    throw new Error("Too many redirects");
+  }
+
+  const publicUrl = await assertPublicHttpUrl(inputUrl);
+  if (!isAllowedDirectMediaHost(publicUrl)) {
+    throw new Error("Direct media host is not allowed");
+  }
+  const res = await fetch(publicUrl, {
+    redirect: "manual",
+    headers: { "User-Agent": "VidGrab/1.0" },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (res.status >= 300 && res.status < 400) {
+    const location = res.headers.get("location");
+    if (!location) throw new Error("Redirect without location");
+    return fetchPublicDirectStream(new URL(location, publicUrl).toString(), redirects + 1);
+  }
+
+  if (!res.ok || !res.body) {
+    throw new Error(`Direct media fetch failed (${res.status})`);
+  }
+
+  let controllerSettled = false;
+  let firstByteSettled = false;
+  let resolveFirstByte!: () => void;
+  let rejectFirstByte!: (err: DownloadFailure) => void;
+  const makeDirectFailure = (message: string, midStream: boolean): DownloadFailure => {
+    const failure = new Error(message) as DownloadFailure;
+    failure.stderr = message;
+    failure.signal = null;
+    failure.code = null;
+    failure.midStream = midStream;
+    return failure;
+  };
+  const firstByte = new Promise<void>((resolve, reject) => {
+    resolveFirstByte = () => {
+      if (firstByteSettled) return;
+      firstByteSettled = true;
+      resolve();
+    };
+    rejectFirstByte = (err) => {
+      if (firstByteSettled) return;
+      firstByteSettled = true;
+      reject(err);
+    };
+  });
+
+  const reader = res.body.getReader();
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (!firstByteSettled) {
+            rejectFirstByte(makeDirectFailure("Direct media response was empty", false));
+          }
+          if (!controllerSettled) {
+            controllerSettled = true;
+            controller.close();
+          }
+          return;
+        }
+        resolveFirstByte();
+        controller.enqueue(value);
+      } catch (error) {
+        const failure = makeDirectFailure(
+          error instanceof Error ? error.message : "Direct media stream failed",
+          firstByteSettled
+        );
+        rejectFirstByte(failure);
+        if (!controllerSettled) {
+          controllerSettled = true;
+          controller.error(failure);
+        }
+      }
+    },
+    async cancel() {
+      await reader.cancel();
+    },
+  });
+
+  return { stream, firstByte, abort: () => void reader.cancel() };
 }
 
 /** Map a download failure to a user-friendly message + HTTP status. */
@@ -62,10 +172,6 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
-  if (direct) {
-    return Response.json({ error: "Direct URL relay is disabled." }, { status: 403 });
-  }
-
   let url: string;
   try {
     url = await assertPublicHttpUrl(sanitizeUrl(rawUrl));
@@ -73,15 +179,18 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "Please provide a valid public URL." }, { status: 400 });
   }
 
-  const safeTitle = title.replace(/[^a-zA-Z0-9_\-\s]/g, "").slice(0, 100);
+  const safeTitle = sanitizeFilename(title, 100);
   const ext = audioOnly ? "mp3" : "mp4";
+  const ytdlp = await import("@/lib/ytdlp");
 
   // Trigger background yt-dlp update check
-  ensureYtdlpFresh().catch(() => {});
+  ytdlp.ensureYtdlpFresh().catch(() => {});
 
   // ── yt-dlp download with retry & player client rotation ──
   // SponsorBlock support (from Arroxy) — skip/mark sponsors in YouTube videos
   const sponsorBlock = searchParams.get("sponsorblock");
+  const clipStart = searchParams.get("start") || null;
+  const clipEnd = searchParams.get("end") || null;
 
   const release = acquireDownloadSlot(url);
   if (!release) {
@@ -101,7 +210,10 @@ export async function GET(req: NextRequest) {
   // Commit a 200 + stream only after the first byte is produced; release the
   // concurrency slot when the stream ends (guardStream's release is idempotent).
   const prepare = async (ds: DownloadStream): Promise<DownloadStream> => {
-    const output = audioOnly ? ds : applyLogoRemoval(ds, logoRemoval);
+    const output =
+      audioOnly || !logoRemoval.enabled
+        ? ds
+        : (await import("@/lib/logo-removal")).applyLogoRemoval(ds, logoRemoval);
     await output.firstByte;
     return output;
   };
@@ -109,10 +221,25 @@ export async function GET(req: NextRequest) {
   const respond = (ds: DownloadStream): Response =>
     new Response(guardStream(ds.stream, release), { headers: streamHeaders });
 
+  if (direct) {
+    try {
+      const directStream = await fetchPublicDirectStream(url);
+      const output = await prepare(directStream);
+      return respond(output);
+    } catch {
+      release();
+      return Response.json(
+        { error: "Direct media could not be relayed safely." },
+        { status: 502 }
+      );
+    }
+  }
+
   // Fallback engine #1: pytubefix (secondary YouTube extractor + ffmpeg mux).
   const tryPytubefix = async (): Promise<Response | null> => {
     if (!isYouTubeUrl(url)) return null;
     try {
+      const { pytubefixDownload } = await import("@/lib/pytubefix");
       const pf = await pytubefixDownload(url, formatId, audioOnly);
       const output = await prepare(pf);
       return respond(output);
@@ -128,6 +255,7 @@ export async function GET(req: NextRequest) {
       const cobalt = await cobaltDownload(url, audioOnly);
       if (cobalt.ok && (cobalt.url || cobalt.audioUrl)) {
         const target = (audioOnly && cobalt.audioUrl) || cobalt.url || cobalt.audioUrl!;
+        await assertPublicHttpUrl(target);
         release();
         return Response.redirect(target, 302);
       }
@@ -152,13 +280,15 @@ export async function GET(req: NextRequest) {
   }
 
   // Primary engine: yt-dlp with retry & player-client rotation.
-  const { stream, firstByte, abort } = spawnDownloadWithRetry(
+  const { stream, firstByte, abort } = ytdlp.spawnDownloadWithRetry(
     url,
     formatId,
     audioOnly,
     {
       sponsorBlock: sponsorBlock || undefined,
       progressive,
+      clipStart: clipStart || undefined,
+      clipEnd: clipEnd || undefined,
     }
   );
 

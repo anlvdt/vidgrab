@@ -66,13 +66,22 @@ export default function ErrorReport({ url, error, onRetry }: ErrorReportProps) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-sm glass-card rounded-2xl p-5">
+          <div
+            className="relative w-full max-w-sm glass-card rounded-2xl p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="error-report-title"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
+              <h3 id="error-report-title" className="font-semibold text-sm flex items-center gap-2">
                 <Flag className="w-4 h-4 text-[var(--danger)]" />
                 {t.errorReportTitle}
               </h3>
-              <button onClick={() => setOpen(false)} className="p-1 rounded-lg hover:bg-[var(--glass-bg)] min-h-0 min-w-0">
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1 rounded-lg hover:bg-[var(--glass-bg)] min-h-0 min-w-0"
+                aria-label="Close"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>

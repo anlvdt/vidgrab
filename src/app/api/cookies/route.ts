@@ -3,6 +3,7 @@ import { writeFile, unlink, access } from "fs/promises";
 import { timingSafeEqual } from "crypto";
 
 const COOKIES_PATH = process.env.VIDGRAB_COOKIES_PATH || "/tmp/vidgrab-cookies.txt";
+const MAX_COOKIE_FILE_BYTES = 512 * 1024;
 
 function isAuthorized(req: NextRequest): boolean {
   const expected = process.env.VIDGRAB_ADMIN_TOKEN;
@@ -27,16 +28,24 @@ export async function POST(req: NextRequest) {
     }
 
     const text = await file.text();
+    if (text.length > MAX_COOKIE_FILE_BYTES) {
+      return NextResponse.json(
+        { error: "Cookie file is too large." },
+        { status: 413 }
+      );
+    }
 
     // Basic validation: Netscape cookie format starts with comments or domain lines
-    if (!text.includes("\t") || text.length < 20) {
+    const lines = text.split(/\r?\n/).filter((line) => line && !line.startsWith("#"));
+    const validCookieLine = lines.some((line) => line.split("\t").length >= 7);
+    if (!validCookieLine || text.length < 20) {
       return NextResponse.json(
         { error: "Invalid cookies.txt format. Use Netscape/Mozilla cookie format." },
         { status: 400 }
       );
     }
 
-    await writeFile(COOKIES_PATH, text, "utf-8");
+    await writeFile(COOKIES_PATH, text, { encoding: "utf-8", mode: 0o600 });
     return NextResponse.json({ ok: true, message: "Cookies saved successfully" });
   } catch (error) {
     console.error("Cookie upload error:", error);

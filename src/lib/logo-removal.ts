@@ -1,28 +1,8 @@
 import { spawn } from "child_process";
 import type { DownloadFailure, DownloadStream } from "./ytdlp";
-
-export type LogoPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right";
-
-export interface LogoRemovalOptions {
-  enabled: boolean;
-  position: LogoPosition;
-}
+import type { LogoPosition, LogoRemovalOptions } from "./logo-removal-options";
 
 const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-
-export function parseLogoRemoval(searchParams: URLSearchParams): LogoRemovalOptions {
-  const enabled = searchParams.get("logo") === "blur";
-  const raw = searchParams.get("logoPosition");
-  const position: LogoPosition =
-    raw === "top-left" ||
-    raw === "top-right" ||
-    raw === "bottom-left" ||
-    raw === "bottom-right"
-      ? raw
-      : "top-right";
-
-  return { enabled, position };
-}
 
 function blurCornerFilter(position: LogoPosition): string {
   const width = 120;
@@ -89,6 +69,8 @@ export function applyLogoRemoval(
         controller.error(failure);
       };
 
+      // Optimized encoding: use ultrafast preset for speed,
+      // -tune zerolatency for streaming, CRF 23 for good quality
       proc = spawn(FFMPEG_BIN, [
         "-hide_banner",
         "-loglevel",
@@ -104,13 +86,17 @@ export function applyLogoRemoval(
         "-c:v",
         "libx264",
         "-preset",
-        "veryfast",
+        "ultrafast",
+        "-tune",
+        "zerolatency",
         "-crf",
         "23",
         "-c:a",
         "aac",
         "-b:a",
-        "160k",
+        "128k",
+        "-movflags",
+        "+faststart",
         "-f",
         "mpegts",
         "pipe:1",
