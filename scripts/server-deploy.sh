@@ -52,8 +52,12 @@ if [ -d "$S/node_modules" ]; then
 fi
 cp -a "$S/server.js"   "$W/server.js"
 cp -a "$S/package.json" "$W/package.json"
-mkdir -p "$W/public"
-cp -a "$S/public/." "$W/public/" 2>/dev/null || true
+if [ -d "$S/public" ]; then
+  rm -rf "$W/public.new"
+  cp -a "$S/public" "$W/public.new"
+  rm -rf "$W/public"
+  mv "$W/public.new" "$W/public"
+fi
 mkdir -p "$W/scripts"
 cp -a "$S/scripts/." "$W/scripts/" 2>/dev/null || true
 
