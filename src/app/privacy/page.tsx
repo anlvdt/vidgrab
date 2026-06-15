@@ -42,7 +42,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Quảng cáo</h2>
-                <p>VidGrab có thể hiển thị quảng cáo từ Google AdSense. Google có thể sử dụng cookies để cá nhân hóa quảng cáo. Bạn có thể tắt cá nhân hóa quảng cáo tại cài đặt quảng cáo của Google.</p>
+                <p>VidGrab hiện không hiển thị quảng cáo và không tải script quảng cáo của bên thứ ba.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Báo cáo lỗi</h2>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Advertising</h2>
-                <p>VidGrab may display ads from Google AdSense. Google may use cookies to personalize ads. You can opt out of personalized advertising in your Google ad settings.</p>
+                <p>VidGrab currently does not display ads or load third-party advertising scripts.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Error Reports</h2>

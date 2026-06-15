@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
@@ -58,13 +57,6 @@ export default function RootLayout({
               })();
             `,
           }}
-        />
-        {/* Google AdSense */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2128076491386515"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
         />
         {/* Register Service Worker */}
         <script
