@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# ─── VidGrab MAC-side deploy orchestrator ───
+# One command to ship the current commit to live vidgrab.io.vn.
+#
+#   ./scripts/deploy.sh
+#
+# What it does:
+#   1. next build (standalone)            — on the Mac (the host can't build: LVE OOM)
+#   2. package .next + static + public    — node_modules excluded (already on server)
+#   3. push artifact to a temp GitHub branch (transport — file_upload & temp hosts are blocked)
+#   4. print the ONE command to paste into the cPanel Terminal
+#   5. poll /api/health until the new build is live, then delete the temp branch
+#
+# Requires a clean tracked working tree. Build outputs are gitignored, so a normal
+# working branch counts as clean.
+set -euo pipefail
+
+# ── config ──────────────────────────────────────────────────
+SITE_URL="https://vidgrab.io.vn"
+GH_REMOTE="origin"
+GH_OWNER_REPO="anlvdt/vidgrab"
+RAW_BASE="https://raw.githubusercontent.com/${GH_OWNER_REPO}"
+
+# ── locate repo root ────────────────────────────────────────
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+STANDALONE=".next/standalone"
+
+# ── guard: clean tracked tree ───────────────────────────────
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "FATAL: uncommitted tracked changes — commit or stash first." >&2
+  exit 1
+fi
+
+CUR_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+SHA="$(git rev-parse --short HEAD)"
+ART="vidgrab-deploy-${SHA}.tar.gz"
+DEPLOY_BRANCH="deploy-${SHA}"
+
+cleanup_local() { git checkout -q "$CUR_BRANCH" 2>/dev/null || true
+                  git branch -qD "$DEPLOY_BRANCH" 2>/dev/null || true
+                  rm -f "$REPO_ROOT/$ART"; }
+trap cleanup_local EXIT
+
+echo "==> [1/5] Building (next build · standalone)…"
+npm run build >/dev/null
+[ -d "$STANDALONE" ] || { echo "FATAL: no $STANDALONE — is output:'standalone' set?" >&2; exit 1; }
+
+echo "==> [2/5] Packaging $ART (fold static + public, exclude node_modules)…"
+rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
+[ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
+rm -f "$REPO_ROOT/$ART"
+( cd "$STANDALONE" && COPYFILE_DISABLE=1 tar --exclude='node_modules' --exclude='._*' \
+    -czf "$REPO_ROOT/$ART" . )
+echo "    artifact: $(du -h "$REPO_ROOT/$ART" | cut -f1)"
+
+echo "==> [3/5] Pushing artifact to temp branch ${DEPLOY_BRANCH}..."
+git checkout -q -b "$DEPLOY_BRANCH"
+git add -f "$ART"
+git commit -q -m "chore: deploy artifact $SHA [temp]"
+git push -qf "$GH_REMOTE" "$DEPLOY_BRANCH"
+git checkout -q "$CUR_BRANCH"
+git branch -qD "$DEPLOY_BRANCH"
+rm -f "$REPO_ROOT/$ART"
+trap - EXIT   # local state already clean; keep remote branch for the server pull
+
+GH_TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill 2>/dev/null | grep password | cut -d= -f2 || true)
+
+if [ -n "$GH_TOKEN" ]; then
+  SRV_URL="https://api.github.com/repos/${GH_OWNER_REPO}/contents/scripts/server-deploy.sh?ref=${DEPLOY_BRANCH}"
+  ART_URL="https://api.github.com/repos/${GH_OWNER_REPO}/contents/${ART}?ref=${DEPLOY_BRANCH}"
+  cat <<EOF
+
+──────────────────────────────────────────────────────────────
+ [4/5] Paste this into the cPanel Terminal (Tools → Terminal):
+
+   export GITHUB_TOKEN="$GH_TOKEN"
+   curl -H "Authorization: token \$GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw" -fsSL "$SRV_URL" | bash -s -- "$ART_URL"
+
+──────────────────────────────────────────────────────────────
+EOF
+else
+  ART_URL="${RAW_BASE}/${DEPLOY_BRANCH}/${ART}"
+  SRV_URL="${RAW_BASE}/${DEPLOY_BRANCH}/scripts/server-deploy.sh"
+  cat <<EOF
+
+──────────────────────────────────────────────────────────────
+ [4/5] Paste this into the cPanel Terminal (Tools → Terminal):
+
+   curl -fsSL "$SRV_URL" | bash -s "$ART_URL"
+
+──────────────────────────────────────────────────────────────
+EOF
+fi
+
+echo "==> [5/5] Polling $SITE_URL/api/health (up to ~3 min)…"
+NEW_BUILD="$(cat "$STANDALONE/.next/BUILD_ID")"
+ok=""
+for _ in $(seq 1 36); do
+  body="$(curl -fsS -m 10 "$SITE_URL/api/health" 2>/dev/null || true)"
+  if echo "$body" | grep -q '"buildId":"'"$NEW_BUILD"'"'; then ok=1; echo "    LIVE: $body"; break; fi
+  sleep 5
+done
+
+if [ -n "$ok" ]; then
+  echo "==> Deploy verified. Deleting temp branch ${DEPLOY_BRANCH}..."
+  git push -q "$GH_REMOTE" --delete "$DEPLOY_BRANCH" || true
+  echo "✅ DONE — vidgrab.io.vn is now serving build $NEW_BUILD"
+else
+  echo "⚠️  Health check didn't confirm yet (did you run the cPanel command?)."
+  echo "    Re-check:  curl -fsS $SITE_URL/api/health"
+  echo "    Rollback:  curl -fsSL \"${RAW_BASE}/${DEPLOY_BRANCH}/scripts/server-rollback.sh\" | bash"
+  echo "    When done, delete temp branch:  git push $GH_REMOTE --delete $DEPLOY_BRANCH"
+fi
