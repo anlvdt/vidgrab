@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
+import path from "path";
 
 const execFileAsync = promisify(execFile);
 const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
@@ -20,6 +22,18 @@ async function ytdlpVersion(): Promise<string> {
   return cached.version;
 }
 
+function getBuildId(): string {
+  try {
+    return fs.readFileSync(path.join(process.cwd(), ".next/BUILD_ID"), "utf8").trim();
+  } catch {
+    try {
+      return fs.readFileSync(path.join(process.cwd(), "BUILD_ID"), "utf8").trim();
+    } catch {
+      return "unknown";
+    }
+  }
+}
+
 /**
  * Liveness + extraction-stack visibility. Surfaces the installed yt-dlp version
  * (the #1 thing to watch for "downloads suddenly broke") and which fallback
@@ -28,6 +42,7 @@ async function ytdlpVersion(): Promise<string> {
 export async function GET() {
   return NextResponse.json({
     ok: true,
+    buildId: getBuildId(),
     ytdlpVersion: await ytdlpVersion(),
     engines: {
       ytdlp: true,
@@ -39,3 +54,4 @@ export async function GET() {
     proxy: !!process.env.YTDLP_PROXY,
   });
 }
+
