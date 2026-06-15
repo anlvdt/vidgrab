@@ -29,10 +29,10 @@ function blurCornerFilter(position: LogoPosition): string {
   const height = 54;
   const margin = 12;
   const cropX = position.endsWith("right")
-    ? `max(in_w-${width + margin}\\,0)`
+    ? `in_w-${width + margin}`
     : String(margin);
   const cropY = position.startsWith("bottom")
-    ? `max(in_h-${height + margin}\\,0)`
+    ? `in_h-${height + margin}`
     : String(margin);
   const overlayX = position.endsWith("right") ? `W-w-${margin}` : String(margin);
   const overlayY = position.startsWith("bottom") ? `H-h-${margin}` : String(margin);
