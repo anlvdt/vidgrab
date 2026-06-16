@@ -9,7 +9,13 @@
 #
 # NEVER build on this host: the CloudLinux LVE memory cap OOM-kills npm install
 # and next build (exit 137). Always build on the Mac and ship the artifact.
-set -u
+set -euo pipefail
+
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo "FATAL: this script must run in the iNET cPanel Terminal, not on the local Mac."
+  echo "Open iNET cPanel -> Tools -> Terminal, then paste the deploy command there."
+  exit 1
+fi
 
 W="$HOME/public_html/vidgrab.io.vn"   # live web root (Passenger app dir)
 S="$HOME/deploy-stage"
@@ -26,7 +32,7 @@ echo "    $(ls -lh "$ART" | awk '{print $5}')  $ART"
 
 echo "==> [2/6] extracting to staging (excluding macOS ._* cruft)"
 rm -rf "$S" && mkdir -p "$S"
-tar -xzf "$ART" -C "$S" --exclude='._*' 2>/dev/null
+tar -xzf "$ART" -C "$S" --exclude='._*'
 find "$S" -name '._*' -delete 2>/dev/null
 if [ ! -f "$S/server.js" ] || [ ! -f "$S/.next/BUILD_ID" ]; then
   echo "FATAL: bad artifact (missing server.js or .next/BUILD_ID)"; rm -rf "$S" "$ART"; exit 1
@@ -34,10 +40,15 @@ fi
 echo "    new_build=$(cat "$S/.next/BUILD_ID")   old_build=$(cat "$W/.next/BUILD_ID" 2>/dev/null || echo none)"
 
 echo "==> [3/6] backing up current live files (instant rollback)"
-rm -rf "$W/.next.bak"
-cp -al "$W/.next" "$W/.next.bak" 2>/dev/null || cp -a "$W/.next" "$W/.next.bak"
-cp -a "$W/server.js"   "$W/server.js.bak"
-cp -a "$W/package.json" "$W/package.json.bak"
+mkdir -p "$W"
+if [ -d "$W/.next" ]; then
+  rm -rf "$W/.next.bak"
+  cp -al "$W/.next" "$W/.next.bak" 2>/dev/null || cp -a "$W/.next" "$W/.next.bak"
+else
+  echo "    no existing .next build to back up"
+fi
+[ -f "$W/server.js" ] && cp -a "$W/server.js" "$W/server.js.bak"
+[ -f "$W/package.json" ] && cp -a "$W/package.json" "$W/package.json.bak"
 
 echo "==> [4/6] swapping in new build (stage new dir, then rm+mv — sub-second window)"
 rm -rf "$W/.next.new"
