@@ -13,6 +13,7 @@
 import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { sanitizeUrl } from "./url-sanitizer";
+import { resolveFfmpegBin, resolveFfmpegLocation, resolveYtdlpBin } from "./runtime-paths";
 import {
   getExtractorArgsForAttempt,
   classifyStderr,
@@ -26,14 +27,12 @@ const execFileAsync = promisify(execFile);
 
 // ─── Constants ───────────────────────────────────────────────
 const COOKIES_PATH = process.env.VIDGRAB_COOKIES_PATH;
-const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
-const FFMPEG_PATH = process.env.FFMPEG_PATH;
+const YTDLP_BIN = resolveYtdlpBin();
+const FFMPEG_PATH = resolveFfmpegLocation();
 // Standalone ffmpeg binary for the audio-only transcode pipe. FFMPEG_PATH is a
 // *location* passed to yt-dlp's --ffmpeg-location (may be a dir or a binary);
 // FFMPEG_BIN is what we exec directly. Default to PATH lookup.
-const FFMPEG_BIN =
-  process.env.FFMPEG_BIN ||
-  (FFMPEG_PATH && /ffmpeg$/.test(FFMPEG_PATH) ? FFMPEG_PATH : "ffmpeg");
+const FFMPEG_BIN = resolveFfmpegBin();
 // bgutil PO-token provider sidecar base URL (e.g. http://bgutil-pot:4416).
 // When set, merged into every youtube: extractor-arg so the yt-dlp plugin can
 // mint Proof-of-Origin tokens. See withPotProvider() for why it must be merged

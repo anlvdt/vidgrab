@@ -46,6 +46,7 @@ cookies.txt
 .env
 .env.local
 error-reports.log
+.runtime/
 
 # Agent tooling symlinks — these escape the project root (point at another
 # volume) and crash Turbopack's Tailwind v4 source scan, breaking `next dev`.

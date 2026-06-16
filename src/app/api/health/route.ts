@@ -3,23 +3,26 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
+import {
+  pythonEnv,
+  resolveFfmpegBin,
+  resolvePythonBin,
+  resolveYtdlpBin,
+} from "@/lib/runtime-paths";
 
 const execFileAsync = promisify(execFile);
-const YTDLP_BIN = process.env.YTDLP_PATH || "yt-dlp";
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-const PYTHON_BIN = process.env.PYTHON_BIN || "python3";
 
 // Cache the version probe so we don't spawn yt-dlp on every health hit.
-let cached: { version: string; checkedAt: number } | null = null;
+let cached: { bin: string; version: string; checkedAt: number } | null = null;
 const TTL_MS = 60 * 60 * 1000; // 1h
 
-async function ytdlpVersion(): Promise<string> {
-  if (cached && Date.now() - cached.checkedAt < TTL_MS) return cached.version;
+async function ytdlpVersion(bin: string): Promise<string> {
+  if (cached && cached.bin === bin && Date.now() - cached.checkedAt < TTL_MS) return cached.version;
   try {
-    const { stdout } = await execFileAsync(YTDLP_BIN, ["--version"], { timeout: 5000 });
-    cached = { version: stdout.trim(), checkedAt: Date.now() };
+    const { stdout } = await execFileAsync(bin, ["--version"], { timeout: 5000 });
+    cached = { bin, version: stdout.trim(), checkedAt: Date.now() };
   } catch {
-    cached = { version: "unavailable", checkedAt: Date.now() };
+    cached = { bin, version: "unavailable", checkedAt: Date.now() };
   }
   return cached.version;
 }
@@ -36,9 +39,9 @@ async function binaryVersion(bin: string, args: string[], timeout = 5000): Promi
 async function pytubefixStatus(): Promise<string> {
   try {
     const { stdout } = await execFileAsync(
-      PYTHON_BIN,
+      resolvePythonBin(),
       ["-c", "import pytubefix; print(getattr(pytubefix, '__version__', 'available'))"],
-      { timeout: 5000 }
+      { env: pythonEnv(), timeout: 5000 }
     );
     return stdout.trim() || "available";
   } catch {
@@ -64,15 +67,20 @@ function getBuildId(): string {
  * engines are wired, without leaking secrets.
  */
 export async function GET() {
+  const ytdlpBin = resolveYtdlpBin();
+  const ffmpegBin = resolveFfmpegBin();
+  const pythonBin = resolvePythonBin();
+  const ytdlpVersionValue = await ytdlpVersion(ytdlpBin);
+
   return NextResponse.json({
     checkedAt: new Date().toISOString(),
     ok: true,
     buildId: getBuildId(),
-    ytdlpVersion: await ytdlpVersion(),
+    ytdlpVersion: ytdlpVersionValue,
     engines: {
-      ytdlp: (await ytdlpVersion()) !== "unavailable",
-      ffmpeg: await binaryVersion(FFMPEG_BIN, ["-version"]),
-      python: await binaryVersion(PYTHON_BIN, ["--version"]),
+      ytdlp: ytdlpVersionValue !== "unavailable",
+      ffmpeg: await binaryVersion(ffmpegBin, ["-version"]),
+      python: await binaryVersion(pythonBin, ["--version"]),
       pytubefix: await pytubefixStatus(),
       cobalt: !!process.env.COBALT_API_URL,
     },

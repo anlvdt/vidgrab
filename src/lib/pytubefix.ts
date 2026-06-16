@@ -20,6 +20,7 @@ import path from "path";
 import { promisify } from "util";
 import { sanitizeUrl } from "./url-sanitizer";
 import { classifyStderr } from "./po-token";
+import { pythonEnv, resolveFfmpegBin, resolvePythonBin } from "./runtime-paths";
 import {
   isPytubefixFormat,
   pytubefixFormatId,
@@ -29,8 +30,8 @@ import type { VideoFormat, VideoInfo, DownloadFailure, DownloadStream } from "./
 
 const execFileAsync = promisify(execFile);
 
-const PYTHON_BIN = process.env.PYTHON_BIN || "python3";
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
+const PYTHON_BIN = resolvePythonBin();
+const FFMPEG_BIN = resolveFfmpegBin();
 const DEFAULT_HELPER_PATH = path.join(
   /*turbopackIgnore: true*/ process.cwd(),
   "scripts",
@@ -94,7 +95,7 @@ async function extract(url: string): Promise<RawInfo> {
   const { stdout } = await execFileAsync(
     PYTHON_BIN,
     [HELPER_PATH, "info", sanitizeUrl(url)],
-    { maxBuffer: 8 * 1024 * 1024, timeout: 45_000 }
+    { env: pythonEnv(), maxBuffer: 8 * 1024 * 1024, timeout: 45_000 }
   );
   const data = JSON.parse(stdout) as RawInfo;
   if (!data.ok || !data.formats?.length) {

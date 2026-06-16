@@ -25,6 +25,8 @@ RAW_BASE="https://raw.githubusercontent.com/${GH_OWNER_REPO}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 STANDALONE=".next/standalone"
+RUNTIME_DIR=".runtime"
+FFMPEG_TARBALL_URL="https://registry.npmjs.org/@ffmpeg-installer/linux-x64/-/linux-x64-4.1.0.tgz"
 
 # ── guard: clean tracked tree ───────────────────────────────
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -47,8 +49,18 @@ npm run build >/dev/null
 [ -d "$STANDALONE" ] || { echo "FATAL: no $STANDALONE — is output:'standalone' set?" >&2; exit 1; }
 
 echo "==> [2/5] Packaging $ART (fold static + public + traced node_modules)…"
+echo "    preparing Linux runtime helpers..."
+rm -rf "$RUNTIME_DIR"
+mkdir -p "$RUNTIME_DIR/bin"
+TMP_RUNTIME="$(mktemp -d)"
+curl -fsSL "$FFMPEG_TARBALL_URL" -o "$TMP_RUNTIME/ffmpeg.tgz"
+tar -xzf "$TMP_RUNTIME/ffmpeg.tgz" -C "$TMP_RUNTIME"
+cp "$TMP_RUNTIME/package/ffmpeg" "$RUNTIME_DIR/bin/ffmpeg"
+chmod 755 "$RUNTIME_DIR/bin/ffmpeg"
+rm -rf "$TMP_RUNTIME"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
 [ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
+rm -rf "$STANDALONE/bin" && cp -R "$RUNTIME_DIR/bin" "$STANDALONE/bin"
 rm -f "$REPO_ROOT/$ART"
 ( cd "$STANDALONE" && COPYFILE_DISABLE=1 tar --exclude='._*' -czf "$REPO_ROOT/$ART" . )
 echo "    artifact: $(du -h "$REPO_ROOT/$ART" | cut -f1)"

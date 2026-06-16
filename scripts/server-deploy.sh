@@ -69,8 +69,33 @@ if [ -d "$S/public" ]; then
   rm -rf "$W/public"
   mv "$W/public.new" "$W/public"
 fi
+if [ -d "$S/bin" ]; then
+  rm -rf "$W/bin.new"
+  cp -a "$S/bin" "$W/bin.new"
+  chmod 755 "$W/bin.new/"* 2>/dev/null || true
+  rm -rf "$W/bin"
+  mv "$W/bin.new" "$W/bin"
+fi
 mkdir -p "$W/scripts"
 cp -a "$S/scripts/." "$W/scripts/" 2>/dev/null || true
+
+echo "==> [4b/6] preparing optional Python fallback"
+PY_BIN=""
+for candidate in "${PYTHON_BIN:-}" python3 /usr/bin/python3 /usr/local/bin/python3 /opt/alt/python312/bin/python3 /opt/alt/python311/bin/python3 /opt/alt/python310/bin/python3 /opt/alt/python39/bin/python3 /opt/alt/python38/bin/python3; do
+  [ -n "$candidate" ] || continue
+  if command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; then
+    PY_BIN="$candidate"
+    break
+  fi
+done
+if [ -n "$PY_BIN" ] && "$PY_BIN" -m pip --version >/dev/null 2>&1; then
+  mkdir -p "$W/.python"
+  "$PY_BIN" -m pip install --no-cache-dir --upgrade --target "$W/.python" pytubefix==10.9.0 >/tmp/vidgrab-pytubefix-install.log 2>&1 \
+    && echo "    pytubefix installed with $("$PY_BIN" --version 2>&1)" \
+    || { echo "    pytubefix install skipped (pip failed; see /tmp/vidgrab-pytubefix-install.log)"; }
+else
+  echo "    pytubefix install skipped (python3/pip unavailable)"
+fi
 
 echo "==> [5/6] restarting Passenger"
 mkdir -p "$W/tmp"
