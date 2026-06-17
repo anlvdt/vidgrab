@@ -27,7 +27,10 @@ cd "$REPO_ROOT"
 STANDALONE=".next/standalone"
 RUNTIME_DIR=".runtime"
 FFMPEG_TARBALL_URL="https://registry.npmjs.org/@ffmpeg-installer/linux-x64/-/linux-x64-4.1.0.tgz"
+YTDLP_BIN_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 PYTUBEFIX_VERSION="10.9.0"
+HOSTING_PYTHON_VERSION="3.12"
+HOSTING_PYTHON_ABI="cp312"
 
 # ── guard: clean tracked tree ───────────────────────────────
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -59,7 +62,26 @@ tar -xzf "$TMP_RUNTIME/ffmpeg.tgz" -C "$TMP_RUNTIME"
 cp "$TMP_RUNTIME/package/ffmpeg" "$RUNTIME_DIR/bin/ffmpeg"
 chmod 755 "$RUNTIME_DIR/bin/ffmpeg"
 rm -rf "$TMP_RUNTIME"
-python3 -m pip install --quiet --disable-pip-version-check --target "$RUNTIME_DIR/python" "pytubefix==$PYTUBEFIX_VERSION"
+curl -fsSL "$YTDLP_BIN_URL" -o "$RUNTIME_DIR/bin/yt-dlp"
+chmod 755 "$RUNTIME_DIR/bin/yt-dlp"
+python3 -m pip install --quiet --disable-pip-version-check \
+  --platform manylinux2014_x86_64 \
+  --implementation cp \
+  --python-version "$HOSTING_PYTHON_VERSION" \
+  --abi "$HOSTING_PYTHON_ABI" \
+  --only-binary=:all: \
+  --no-deps \
+  --target "$RUNTIME_DIR/python" \
+  "pytubefix==$PYTUBEFIX_VERSION" \
+  "aiohttp==3.14.1" \
+  "aiohappyeyeballs==2.6.2" \
+  "aiosignal==1.4.0" \
+  "attrs==26.1.0" \
+  "frozenlist==1.8.0" \
+  "idna==3.18" \
+  "multidict==6.7.1" \
+  "propcache==0.5.2" \
+  "yarl==1.24.2"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
 [ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
 rm -rf "$STANDALONE/bin" && cp -R "$RUNTIME_DIR/bin" "$STANDALONE/bin"
