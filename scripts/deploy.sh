@@ -91,9 +91,29 @@ python3 -m pip install --quiet --disable-pip-version-check \
   "frozenlist==1.8.0" \
   "idna==3.18" \
   "multidict==6.7.1" \
-  "nodejs-wheel==22.20.0" \
   "propcache==0.5.2" \
   "yarl==1.24.2"
+mkdir -p "$RUNTIME_DIR/python/nodejs_wheel/bin"
+cat > "$RUNTIME_DIR/python/nodejs_wheel/__init__.py" <<'EOF'
+"""Minimal nodejs_wheel shim for pytubefix on cPanel hosting."""
+EOF
+cat > "$RUNTIME_DIR/python/nodejs_wheel/executable.py" <<'EOF'
+import os
+
+ROOT_DIR = os.path.dirname(__file__)
+EOF
+cat > "$RUNTIME_DIR/python/nodejs_wheel/bin/node" <<'EOF'
+#!/bin/sh
+for node in "${NODE_BIN:-}" node /opt/alt/alt-nodejs24/root/usr/bin/node /opt/alt/alt-nodejs22/root/usr/bin/node /opt/alt/alt-nodejs20/root/usr/bin/node /opt/alt/alt-nodejs18/root/usr/bin/node /usr/local/bin/node /usr/bin/node; do
+  [ -n "$node" ] || continue
+  if command -v "$node" >/dev/null 2>&1 || [ -x "$node" ]; then
+    exec "$node" "$@"
+  fi
+done
+echo "nodejs_wheel shim: node not found" >&2
+exit 127
+EOF
+chmod 755 "$RUNTIME_DIR/python/nodejs_wheel/bin/node"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
 [ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
 rm -rf "$STANDALONE/bin" && cp -R "$RUNTIME_DIR/bin" "$STANDALONE/bin"
