@@ -91,6 +91,7 @@ python3 -m pip install --quiet --disable-pip-version-check \
   "frozenlist==1.8.0" \
   "idna==3.18" \
   "multidict==6.7.1" \
+  "nodejs-wheel==22.20.0" \
   "propcache==0.5.2" \
   "yarl==1.24.2"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
