@@ -27,6 +27,7 @@ cd "$REPO_ROOT"
 STANDALONE=".next/standalone"
 RUNTIME_DIR=".runtime"
 FFMPEG_TARBALL_URL="https://registry.npmjs.org/@ffmpeg-installer/linux-x64/-/linux-x64-4.1.0.tgz"
+PYTUBEFIX_VERSION="10.9.0"
 
 # ── guard: clean tracked tree ───────────────────────────────
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -58,9 +59,11 @@ tar -xzf "$TMP_RUNTIME/ffmpeg.tgz" -C "$TMP_RUNTIME"
 cp "$TMP_RUNTIME/package/ffmpeg" "$RUNTIME_DIR/bin/ffmpeg"
 chmod 755 "$RUNTIME_DIR/bin/ffmpeg"
 rm -rf "$TMP_RUNTIME"
+python3 -m pip install --quiet --disable-pip-version-check --target "$RUNTIME_DIR/python" "pytubefix==$PYTUBEFIX_VERSION"
 rm -rf "$STANDALONE/.next/static" && cp -R .next/static "$STANDALONE/.next/static"
 [ -d public ] && { rm -rf "$STANDALONE/public"; cp -R public "$STANDALONE/public"; }
 rm -rf "$STANDALONE/bin" && cp -R "$RUNTIME_DIR/bin" "$STANDALONE/bin"
+rm -rf "$STANDALONE/.python" && cp -R "$RUNTIME_DIR/python" "$STANDALONE/.python"
 rm -f "$REPO_ROOT/$ART"
 ( cd "$STANDALONE" && COPYFILE_DISABLE=1 tar --exclude='._*' -czf "$REPO_ROOT/$ART" . )
 echo "    artifact: $(du -h "$REPO_ROOT/$ART" | cut -f1)"

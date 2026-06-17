@@ -76,6 +76,12 @@ if [ -d "$S/bin" ]; then
   rm -rf "$W/bin"
   mv "$W/bin.new" "$W/bin"
 fi
+if [ -d "$S/.python" ]; then
+  rm -rf "$W/.python.new"
+  cp -a "$S/.python" "$W/.python.new"
+  rm -rf "$W/.python"
+  mv "$W/.python.new" "$W/.python"
+fi
 mkdir -p "$W/scripts"
 cp -a "$S/scripts/." "$W/scripts/" 2>/dev/null || true
 
@@ -88,7 +94,9 @@ for candidate in "${PYTHON_BIN:-}" python3 /usr/bin/python3 /usr/local/bin/pytho
     break
   fi
 done
-if [ -n "$PY_BIN" ] && "$PY_BIN" -m pip --version >/dev/null 2>&1; then
+if [ -d "$W/.python/pytubefix" ]; then
+  echo "    pytubefix bundled in artifact"
+elif [ -n "$PY_BIN" ] && "$PY_BIN" -m pip --version >/dev/null 2>&1; then
   mkdir -p "$W/.python"
   "$PY_BIN" -m pip install --no-cache-dir --upgrade --target "$W/.python" pytubefix==10.9.0 >/tmp/vidgrab-pytubefix-install.log 2>&1 \
     && echo "    pytubefix installed with $("$PY_BIN" --version 2>&1)" \
