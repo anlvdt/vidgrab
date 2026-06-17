@@ -92,6 +92,7 @@ python3 -m pip install --quiet --disable-pip-version-check \
   "idna==3.18" \
   "multidict==6.7.1" \
   "propcache==0.5.2" \
+  "typing-extensions==4.15.0" \
   "yarl==1.24.2"
 mkdir -p "$RUNTIME_DIR/python/nodejs_wheel/bin"
 cat > "$RUNTIME_DIR/python/nodejs_wheel/__init__.py" <<'EOF'
