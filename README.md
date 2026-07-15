@@ -28,20 +28,31 @@ Important URL ownership:
 - Do not copy or extract a WC26 `index.html` into the domain root. A top-level
   `public_html/vidgrab.io.vn/index.html` can override the VidGrab app.
 
-The production path is Docker Compose on the iNET host/domain:
+Live runtime is **Next.js standalone + Passenger** under
+`~/public_html/vidgrab.io.vn` (not Docker on the shared host). **SSH is not used.**
 
-```bash
-docker compose up -d --build
-```
+### Deploy (canonical)
 
-The compose stack publishes the app on port `3000` and sets:
+Full agent rules: **[AGENTS.md](./AGENTS.md)**.
 
-```bash
-NEXT_PUBLIC_SITE_URL=https://vidgrab.io.vn
-```
+1. On the Mac (clean tracked tree):
 
-Point `vidgrab.io.vn` at the iNET server or hosting proxy that serves this
-container. Keep TLS/proxy settings in iNET or the server reverse proxy.
+   ```bash
+   ./scripts/deploy.sh
+   ```
+
+2. Paste the printed one-liner into **cPanel → Tools → Terminal** (browser
+   session already logged in). That runs `scripts/server-deploy.sh` on the host
+   and preserves `wc26`.
+
+3. Verify:
+
+   ```bash
+   curl -fsS https://vidgrab.io.vn/api/health
+   ```
+
+Do not run `next build` on the host (LVE OOM). Optional local Docker Compose
+remains for containerized experiments only.
 
 ## Runtime Services
 
