@@ -19,8 +19,8 @@ export default function FAQ() {
   ];
 
   return (
-    <section className="py-12 sm:py-20 px-4 relative z-10">
-      <div className="max-w-2xl mx-auto">
+    <section className="relative z-10 px-3 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto max-w-3xl">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
           {t.faqTitle}
         </h2>

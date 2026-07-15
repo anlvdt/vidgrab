@@ -1,7 +1,6 @@
 "use client";
 
 import { useI18n, type Locale } from "@/lib/i18n";
-import { Languages } from "lucide-react";
 
 const langs: { code: Locale; label: string }[] = [
   { code: "en", label: "EN" },
@@ -12,15 +11,14 @@ export default function LangToggle() {
   const { locale, setLocale } = useI18n();
 
   return (
-    <div className="flex items-center glass rounded-full p-0.5 h-8">
-      <Languages className="w-3 h-3 text-[var(--text-muted)] mx-1.5" />
+    <div className="flex h-9 items-center rounded-lg border border-[var(--border)] bg-[var(--bg-card-solid)] p-0.5">
       {langs.map((l) => (
         <button
           key={l.code}
           onClick={() => setLocale(l.code)}
-          className={`px-2 py-1 rounded-full text-[11px] font-medium transition-all leading-none min-h-0 min-w-0 ${
+          className={`compact-control min-h-0 min-w-0 rounded-md px-2.5 py-1 text-[11px] font-semibold leading-none transition-colors ${
             locale === l.code
-              ? "bg-[var(--accent)] text-white shadow-sm"
+              ? "bg-[var(--accent-soft)] text-[var(--accent-light)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
           aria-label={`Switch to ${l.label}`}

@@ -79,7 +79,7 @@ export default function SettingsPanel() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card-solid)] text-[var(--text-secondary)] shadow-lg transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
         aria-label={vi ? "Mở cài đặt tải xuống" : "Open download settings"}
       >
         <Settings className="w-5 h-5" />

@@ -11,7 +11,6 @@ import PlatformGrid from "@/components/PlatformGrid";
 import DownloadHistory from "@/components/DownloadHistory";
 import { addToHistory } from "@/components/DownloadHistory";
 import Features from "@/components/Features";
-import LinkGuide from "@/components/LinkGuide";
 import FAQ from "@/components/FAQ";
 import TechnologyCredits from "@/components/TechnologyCredits";
 import Footer from "@/components/Footer";
@@ -339,9 +338,6 @@ export default function Home() {
 
         {/* Platform Grid */}
         <PlatformGrid />
-
-        {/* How to get link guide */}
-        <LinkGuide />
 
         <Features />
 

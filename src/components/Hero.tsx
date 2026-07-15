@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   History,
   FileCheck2,
+  ChevronRight,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import LangToggle from "./LangToggle";
@@ -57,11 +58,11 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   };
 
   return (
-    <section className="relative pt-5 pb-12 sm:pb-16 px-4">
+    <section className="relative px-3 pb-10 pt-4 sm:px-6 sm:pb-14">
       {/* Top bar */}
-      <nav className="max-w-5xl mx-auto flex items-center justify-between mb-10 sm:mb-16">
+      <nav className="mx-auto mb-12 flex max-w-6xl items-center justify-between sm:mb-16">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] shadow-[0_8px_24px_var(--accent-glow)]">
             <Zap className="w-4.5 h-4.5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight">
@@ -74,15 +75,15 @@ export default function Hero({ onFetch, loading }: HeroProps) {
         </div>
       </nav>
 
-      <div className="relative max-w-4xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-5 rounded-full glass text-xs font-medium text-[var(--accent-light)]">
+      <div className="relative mx-auto max-w-6xl text-center">
+        <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-card-solid)] px-3 py-1.5 text-xs font-medium text-[var(--accent-light)]">
           <ShieldCheck className="w-3.5 h-3.5" />
           {t.heroOtherSites}
         </div>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 leading-[1.08] tracking-[-0.035em] text-balance">
+        <h1 className="mx-auto mb-4 max-w-3xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-balance sm:text-5xl lg:text-[3.5rem]">
           {t.heroTitle}
         </h1>
-        <p className="text-[var(--text-secondary)] text-base sm:text-lg mb-7 max-w-2xl mx-auto leading-relaxed text-balance">
+        <p className="mx-auto mb-7 max-w-xl text-balance text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
           {t.heroSubtitle}
         </p>
 
@@ -92,14 +93,12 @@ export default function Hero({ onFetch, loading }: HeroProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate className="relative max-w-3xl mx-auto" aria-busy={loading}>
+        <form onSubmit={handleSubmit} noValidate className="relative mx-auto max-w-5xl" aria-busy={loading}>
           <div
-            className={`glow-input glass flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 rounded-2xl p-2.5 sm:pl-5 ${
-              url.trim() ? "pulse-glow" : ""
-            }`}
+            className="download-shell flex flex-col items-stretch gap-2 rounded-2xl p-2 sm:flex-row sm:items-center sm:pl-4"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 sm:px-0">
-              <Search className="w-5 h-5 text-[var(--text-muted)] shrink-0" />
+              <Search className="h-5 w-5 shrink-0 text-[var(--accent-light)]" />
               <input
                 ref={inputRef}
                 type="url"
@@ -113,7 +112,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
                   if (invalidUrl) setInvalidUrl(false);
                 }}
                 placeholder={t.heroPlaceholder}
-                className="min-w-0 flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-base"
+                className="min-w-0 flex-1 bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
                 aria-label={t.heroPlaceholder}
                 aria-invalid={invalidUrl}
                 aria-describedby="url-help"
@@ -121,7 +120,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
               <button
                 type="button"
                 onClick={handleSmartPaste}
-                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-light)] hover:bg-[var(--glass-bg)] transition-all"
+                className="compact-control inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
                 aria-label={t.pasteButton}
               >
                 <Clipboard className="w-4 h-4" />
@@ -132,7 +131,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
             <button
               type="submit"
               disabled={loading || !url.trim()}
-              className="shrink-0 min-h-12 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+              className="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_var(--accent-glow)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:bg-[var(--button-disabled)] disabled:text-[var(--text-muted)] disabled:shadow-none"
               style={{
                 boxShadow: url.trim()
                   ? "0 4px 20px var(--accent-glow)"
@@ -158,23 +157,24 @@ export default function Hero({ onFetch, loading }: HeroProps) {
             {invalidUrl ? t.heroInvalidUrl : t.heroPasteHint}
           </p>
 
-          <div className="flex items-center justify-center gap-3 mt-5">
+          <div className="mt-4 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setPlaylistMode(!playlistMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`compact-control flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                 playlistMode
-                  ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-lg"
-                  : "glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-light)] ring-1 ring-[var(--accent)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
               }`}
             >
               <List className="w-4 h-4" />
               {t.heroPlaylist}
+              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${playlistMode ? "rotate-90" : ""}`} />
             </button>
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-6 text-xs text-[var(--text-secondary)]">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-[var(--text-secondary)]">
           {[
             { icon: ShieldCheck, label: t.heroTrustPrivate },
             { icon: History, label: t.heroTrustHistory },
@@ -187,23 +187,6 @@ export default function Hero({ onFetch, loading }: HeroProps) {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-12 max-w-3xl mx-auto">
-          {[
-            { step: "1", title: t.heroStep1Title, desc: t.heroStep1Desc },
-            { step: "2", title: t.heroStep2Title, desc: t.heroStep2Desc },
-            { step: "3", title: t.heroStep3Title, desc: t.heroStep3Desc },
-          ].map((item) => (
-            <div key={item.step} className="text-left glass-card rounded-2xl p-4 group">
-              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center mb-3 text-[var(--accent-light)] font-bold text-xs">
-                {item.step}
-              </div>
-              <h3 className="font-semibold text-sm mb-1.5">{item.title}</h3>
-              <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );

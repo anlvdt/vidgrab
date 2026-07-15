@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, GitBranch, Layers3, Scale, ShieldCheck } from "lucide-react";
+import { ExternalLink, GitBranch, Scale, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const technologies = [
@@ -48,81 +48,41 @@ export default function TechnologyCredits() {
   const vi = locale === "vi";
 
   return (
-    <section className="relative z-10 px-4 py-12 sm:py-20" aria-labelledby="technology-title">
-      <div className="mx-auto max-w-6xl">
-        <div className="mx-auto mb-8 max-w-3xl text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-light)]">
-            {vi ? "Công khai cách vận hành" : "How it works, in the open"}
-          </p>
-          <h2 id="technology-title" className="text-3xl font-bold sm:text-4xl">
-            <span className="gradient-text">{vi ? "Công nghệ & Minh bạch" : "Technology & Transparency"}</span>
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+    <section className="relative z-10 border-y border-[var(--border)] bg-[var(--section-bg)] px-3 py-10 sm:px-6 sm:py-12" aria-labelledby="technology-title">
+      <div className="mx-auto max-w-5xl">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent-light)]">
+              <ShieldCheck className="h-4 w-4" />
+              {vi ? "Công khai cách vận hành" : "How it works, in the open"}
+            </div>
+            <h2 id="technology-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {vi ? "Công nghệ mã nguồn mở" : "Open-source technology"}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
             {vi
-              ? "VidGrab đứng trên nền tảng của nhiều dự án mã nguồn mở. Chúng tôi ghi nhận đúng công sức của tác giả và nói rõ giới hạn của dịch vụ."
-              : "VidGrab is built on several open-source projects. We credit their authors and state the service's limits plainly."}
-          </p>
+              ? "VidGrab dùng yt-dlp, FFmpeg và các fallback chuyên biệt. Chỉ xử lý URL bạn gửi, không vượt DRM hoặc quyền riêng tư."
+              : "VidGrab uses yt-dlp, FFmpeg and focused fallbacks. It only processes URLs you submit and does not bypass DRM or privacy controls."}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+            <Link href="/transparency" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]">
+              <Scale className="h-4 w-4" />
+              {vi ? "Xem chính sách minh bạch" : "Read our transparency policy"}
+            </Link>
+            <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <GitBranch className="h-4 w-4" />
+              {vi ? "Mã nguồn VidGrab" : "VidGrab source"}
+            </a>
+          </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--border)] pt-5">
           {technologies.map((technology) => (
-            <a
-              key={technology.name}
-              href={technology.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass-card group rounded-xl p-4"
-            >
-              <span className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-[var(--text-primary)]">{technology.name}</span>
-                <ExternalLink className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent-light)]" />
-              </span>
-              <span className="mt-2 block text-sm leading-relaxed text-[var(--text-secondary)]">
-                {vi ? technology.roleVi : technology.roleEn}
-              </span>
+            <a key={technology.name} href={technology.url} target="_blank" rel="noopener noreferrer" title={vi ? technology.roleVi : technology.roleEn} className="compact-control inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card-solid)] px-3 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]">
+              {technology.name}<ExternalLink className="h-3 w-3" />
             </a>
           ))}
-        </div>
-
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
-          <div className="glass rounded-xl p-4">
-            <ShieldCheck className="mb-3 h-5 w-5 text-[var(--success)]" />
-            <h3 className="text-sm font-semibold">{vi ? "Không vượt bảo vệ" : "No protection bypass"}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-              {vi
-                ? "Chỉ xử lý URL người dùng chủ động gửi; không vượt DRM, video riêng tư hoặc kiểm soát truy cập."
-                : "Only user-submitted URLs are processed; DRM, private media and access controls are not bypassed."}
-            </p>
-          </div>
-          <div className="glass rounded-xl p-4">
-            <Layers3 className="mb-3 h-5 w-5 text-[var(--accent-light)]" />
-            <h3 className="text-sm font-semibold">{vi ? "Không phải kho nội dung" : "Not a media library"}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-              {vi
-                ? "VidGrab xử lý theo yêu cầu và không duy trì thư viện media để tìm kiếm, phát lại hoặc phân phối."
-                : "VidGrab processes requests on demand and does not maintain a searchable or playable media catalog."}
-            </p>
-          </div>
-          <div className="glass rounded-xl p-4">
-            <Scale className="mb-3 h-5 w-5 text-[var(--warning)]" />
-            <h3 className="text-sm font-semibold">{vi ? "Dùng đúng quyền" : "Use only with rights"}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-              {vi
-                ? "Chỉ tải nội dung bạn sở hữu, được cấp phép hoặc pháp luật cho phép; đồng thời tuân thủ điều khoản nền tảng nguồn."
-                : "Download only content you own, are licensed to use, or may lawfully copy, while following source-platform terms."}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 text-sm sm:flex-row">
-          <Link href="/transparency" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--glass-bg)] px-4 font-semibold text-[var(--accent-light)] ring-1 ring-[var(--glass-border)] hover:text-[var(--text-primary)]">
-            <Scale className="h-4 w-4" />
-            {vi ? "Đọc đầy đủ chính sách minh bạch" : "Read the full transparency statement"}
-          </Link>
-          <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 px-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            <GitBranch className="h-4 w-4" />
-            {vi ? "Xem mã nguồn VidGrab" : "View VidGrab source"}
-          </a>
         </div>
       </div>
     </section>

@@ -8,10 +8,10 @@ export default function Footer() {
   const { t } = useI18n();
 
   return (
-    <footer className="relative z-10 border-t border-[var(--glass-border)] pt-8 pb-6 px-4">
-      <div className="max-w-4xl mx-auto">
+    <footer className="relative z-10 border-t border-[var(--glass-border)] px-3 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto max-w-5xl">
         {/* Disclaimer */}
-        <div className="glass-card rounded-xl p-4 mb-6 flex items-start gap-3">
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--section-bg)] p-4">
           <Shield className="w-4 h-4 text-[var(--warning)] shrink-0 mt-0.5" />
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">
             {t.footerDisclaimer}
@@ -42,7 +42,7 @@ export default function Footer() {
             </a>
           </div>
 
-          <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1">
+          <p className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
             {t.footerMadeWith} <Heart className="w-3 h-3 text-[var(--accent-secondary)]" /> — {t.footerPoweredBy}
           </p>
         </div>

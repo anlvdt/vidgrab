@@ -14,9 +14,9 @@ export type Locale = "en" | "vi";
 // ─── English ────────────────────────────────────────────
 const en = {
   // Hero
-  heroTitle: "Download public video in the quality you need",
-  heroSubtitle: "Paste a public video link. VidGrab checks the available streams before you choose a file.",
-  heroOtherSites: "Best coverage: YouTube, TikTok, Facebook, Vimeo and other yt-dlp-compatible sites",
+  heroTitle: "Download video in the quality you want",
+  heroSubtitle: "Paste a public link, review the available formats, then download the file you need.",
+  heroOtherSites: "YouTube · TikTok · Facebook · Vimeo · more sites",
   heroPlaceholder: "Paste a public video link…",
   heroPasteHint: "Only public http(s) links are processed.",
   heroFetch: "Analyze link",
@@ -39,7 +39,7 @@ const en = {
 
   // Platform
   platformDetected: "detected",
-  platformTitle: "Real-world compatibility",
+  platformTitle: "Platform compatibility",
   platformSubtitle: "Support changes as platforms change. These labels show the current expected reliability for public links.",
   platformMore: "Other public links are attempted through yt-dlp without a success guarantee",
   platformStrong: "Good",
@@ -209,9 +209,9 @@ const en = {
 
 // ─── Vietnamese ─────────────────────────────────────────
 const vi: typeof en = {
-  heroTitle: "Tải video công khai, đúng chất lượng bạn cần",
-  heroSubtitle: "Dán liên kết video công khai. VidGrab sẽ kiểm tra các luồng có sẵn trước khi bạn chọn file.",
-  heroOtherSites: "Phủ tốt nhất: YouTube, TikTok, Facebook, Vimeo và các trang tương thích yt-dlp",
+  heroTitle: "Tải video theo chất lượng bạn muốn",
+  heroSubtitle: "Dán liên kết công khai, xem các định dạng có sẵn rồi chọn file phù hợp.",
+  heroOtherSites: "YouTube · TikTok · Facebook · Vimeo · nguồn khác",
   heroPlaceholder: "Dán liên kết video công khai…",
   heroPasteHint: "Chỉ xử lý liên kết http(s) công khai.",
   heroFetch: "Phân tích liên kết",
@@ -232,7 +232,7 @@ const vi: typeof en = {
   typingWords: ["MP4", "MP3", "Playlist", "Chất Lượng Có Sẵn"],
 
   platformDetected: "đã nhận diện",
-  platformTitle: "Khả Năng Tương Thích Thực Tế",
+  platformTitle: "Tương thích nền tảng",
   platformSubtitle: "Mức hỗ trợ thay đổi theo từng nền tảng. Nhãn dưới đây phản ánh độ ổn định dự kiến với liên kết công khai.",
   platformMore: "Các liên kết công khai khác vẫn được thử qua yt-dlp nhưng không cam kết thành công",
   platformStrong: "Tốt",
@@ -275,7 +275,7 @@ const vi: typeof en = {
   timeHourAgo: " giờ trước",
   timeDayAgo: " ngày trước",
 
-  featuresTitle: "VidGrab Có Gì",
+  featuresTitle: "VidGrab có gì",
   featuresSubtitle: "Các công cụ hữu ích cho media công khai, đồng thời nói rõ giới hạn khi nền tảng yêu cầu đăng nhập hoặc chặn truy cập từ server.",
   feat1Title: "Lên Đến 8K HDR",
   feat1Desc: "Tải với độ phân giải cao nhất — từ 360p đến 8K, SDR và HDR.",
@@ -290,7 +290,7 @@ const vi: typeof en = {
   feat6Title: "Nhiều Lớp Trích Xuất",
   feat6Desc: "yt-dlp kết hợp fallback chuyên biệt, retry thích nghi và giả lập trình duyệt tùy chọn cho các liên kết công khai khó tải.",
 
-  faqTitle: "Câu Hỏi Thường Gặp",
+  faqTitle: "Câu hỏi thường gặp",
   faq1Q: "VidGrab hỗ trợ những trang nào?",
   faq1A: "VidGrab được test kỹ nhất với link public từ YouTube, TikTok, Facebook và Vimeo. Các trang public khác sẽ được thử qua yt-dlp, nhưng thành công phụ thuộc nền tảng, khu vực, quyền riêng tư của video và việc có cần cookies hay không.",
   faq2Q: "VidGrab có tải được video 8K HDR không?",
