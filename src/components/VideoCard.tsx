@@ -30,41 +30,41 @@ export default function VideoCard({
   const { t } = useI18n();
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden max-w-2xl mx-auto">
+    <div className="glass-card mx-auto w-full max-w-3xl overflow-hidden rounded-2xl">
       {!hideThumbnail && (
-        <div className="relative group">
+        <div className="group relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={thumbnail}
             alt={title}
-            className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
+            className="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
           {duration && (
-            <span className="absolute bottom-3 right-3 glass text-white text-xs font-mono px-2.5 py-1 rounded-lg">
+            <span className="absolute bottom-3 right-3 rounded-lg border border-white/15 bg-black/55 px-2.5 py-1 font-mono text-xs text-white backdrop-blur-sm">
               {duration}
             </span>
           )}
         </div>
       )}
-      <div className="p-5">
-        <h3 className="font-semibold text-lg leading-snug mb-3 line-clamp-2">
+      <div className="p-4 sm:p-5">
+        <h3 className="mb-3 line-clamp-2 text-base font-semibold leading-snug tracking-tight sm:text-lg">
           {title}
         </h3>
-        <div className="flex flex-wrap items-center gap-4 text-[var(--text-secondary)] text-sm">
-          <span className="flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5" />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5 text-[var(--accent-light)]" aria-hidden />
             {uploader}
           </span>
           {viewCount > 0 && (
-            <span className="flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5 text-[var(--accent-light)]" aria-hidden />
               {formatViews(viewCount, t.views)}
             </span>
           )}
           {duration && (
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[var(--accent-light)]" aria-hidden />
               {duration}
             </span>
           )}

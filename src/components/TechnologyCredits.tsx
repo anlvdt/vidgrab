@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, GitBranch, Scale, ShieldCheck } from "lucide-react";
+import { ExternalLink, GitBranch, Scale } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const technologies = [
@@ -48,14 +48,17 @@ export default function TechnologyCredits() {
   const vi = locale === "vi";
 
   return (
-    <section className="relative z-10 border-y border-[var(--border)] bg-[var(--section-bg)] px-3 py-10 sm:px-6 sm:py-12" aria-labelledby="technology-title">
-      <div className="mx-auto max-w-5xl">
+    <section
+      className="relative z-10 border-y border-[var(--border)] bg-[var(--section-bg)] py-[var(--space-8)] sm:py-[var(--space-10)]"
+      aria-labelledby="technology-title"
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent-light)]">
-              <ShieldCheck className="h-4 w-4" />
+            <p className="section-kicker">
               {vi ? "Công khai cách vận hành" : "How it works, in the open"}
-            </div>
+            </p>
             <h2 id="technology-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
               {vi ? "Công nghệ mã nguồn mở" : "Open-source technology"}
             </h2>
@@ -66,12 +69,12 @@ export default function TechnologyCredits() {
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
-            <Link href="/transparency" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]">
-              <Scale className="h-4 w-4" />
+            <Link href="/transparency" className="btn-hero px-4 text-sm">
+              <Scale className="h-4 w-4" aria-hidden />
               {vi ? "Xem chính sách minh bạch" : "Read our transparency policy"}
             </Link>
-            <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-              <GitBranch className="h-4 w-4" />
+            <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+              <GitBranch className="h-4 w-4" aria-hidden />
               {vi ? "Mã nguồn VidGrab" : "VidGrab source"}
             </a>
           </div>
@@ -79,11 +82,20 @@ export default function TechnologyCredits() {
 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--border)] pt-5">
           {technologies.map((technology) => (
-            <a key={technology.name} href={technology.url} target="_blank" rel="noopener noreferrer" title={vi ? technology.roleVi : technology.roleEn} className="compact-control inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card-solid)] px-3 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]">
-              {technology.name}<ExternalLink className="h-3 w-3" />
+            <a
+              key={technology.name}
+              href={technology.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={vi ? technology.roleVi : technology.roleEn}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card-solid)] px-3 text-xs font-medium text-[var(--text-secondary)] shadow-[0_1px_2px_color-mix(in_srgb,var(--glass-shadow)_40%,transparent)] transition-all hover:border-[var(--accent)] hover:text-[var(--text-primary)] hover:shadow-[0_6px_16px_color-mix(in_srgb,var(--glass-shadow)_55%,transparent)]"
+            >
+              {technology.name}
+              <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
             </a>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );

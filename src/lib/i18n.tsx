@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
 export type Locale = "en" | "vi";
 
@@ -33,6 +34,14 @@ const en = {
   heroTrustHistory: "History stays in this browser",
   heroTrustFilename: "Clear, professional filenames",
   pasteButton: "Paste",
+  pasteSuccess: "Pasted",
+  pasteSuccessHint: "Link ready — tap Analyze to continue.",
+
+  // Document titles
+  siteTitle: "VidGrab — Download public video in the quality you choose",
+  titlePrivacy: "Privacy Policy | VidGrab",
+  titleTerms: "Terms of Use | VidGrab",
+  titleTransparency: "Technology & Transparency | VidGrab",
 
   // Typing headline words
   typingWords: ["MP4", "MP3", "Playlist", "Best Available Quality"],
@@ -78,9 +87,16 @@ const en = {
 
   // History
   historyTitle: "Recent Downloads",
-  historyClear: "Clear",
+  historyClear: "Clear all",
   historyShowMore: "more",
   historyShowLess: "Show less",
+  historyEmptyTitle: "No downloads yet",
+  historyEmptyDesc:
+    "When you download a file, it appears here — stored only in this browser for 7 days.",
+  historyEmptyHint: "Paste a public link above to get started.",
+  historyReanalyze: "Analyze again",
+  historyOpenSource: "Open original",
+  historyPrivacyNote: "Private to this device · auto-clears after 7 days",
   timeJustNow: "just now",
   timeMinAgo: "m ago",
   timeHourAgo: "h ago",
@@ -228,6 +244,13 @@ const vi: typeof en = {
   heroTrustHistory: "Lịch sử chỉ lưu trong trình duyệt",
   heroTrustFilename: "Tên file rõ ràng, chuyên nghiệp",
   pasteButton: "Dán",
+  pasteSuccess: "Đã dán",
+  pasteSuccessHint: "Liên kết sẵn sàng — bấm Phân tích để tiếp tục.",
+
+  siteTitle: "VidGrab — Tải video công khai theo chất lượng bạn chọn",
+  titlePrivacy: "Chính sách bảo mật | VidGrab",
+  titleTerms: "Điều khoản sử dụng | VidGrab",
+  titleTransparency: "Công nghệ & Minh bạch | VidGrab",
 
   typingWords: ["MP4", "MP3", "Playlist", "Chất Lượng Có Sẵn"],
 
@@ -266,10 +289,17 @@ const vi: typeof en = {
   video: "video",
   videoPlural: "video",
 
-  historyTitle: "Đã Tải Gần Đây",
-  historyClear: "Xóa",
+  historyTitle: "Đã tải gần đây",
+  historyClear: "Xóa hết",
   historyShowMore: "thêm",
   historyShowLess: "Thu gọn",
+  historyEmptyTitle: "Chưa có lượt tải nào",
+  historyEmptyDesc:
+    "Khi bạn tải file, mục sẽ hiện ở đây — chỉ lưu trong trình duyệt này, tự xóa sau 7 ngày.",
+  historyEmptyHint: "Dán liên kết công khai ở phía trên để bắt đầu.",
+  historyReanalyze: "Phân tích lại",
+  historyOpenSource: "Mở nguồn",
+  historyPrivacyNote: "Chỉ trên thiết bị này · tự xóa sau 7 ngày",
   timeJustNow: "vừa xong",
   timeMinAgo: " phút trước",
   timeHourAgo: " giờ trước",
@@ -402,13 +432,23 @@ function subscribeLocale(onStoreChange: () => void): () => void {
   };
 }
 
+/** Default product language is Vietnamese. */
+const DEFAULT_LOCALE: Locale = "vi";
+
 function localeSnapshot(): Locale {
   const stored = localStorage.getItem("vidgrab-locale") as Locale | null;
-  return stored && translations[stored] ? stored : "vi";
+  if (stored && translations[stored]) return stored;
+  // First visit / invalid value → persist VI so UI stays consistent
+  try {
+    localStorage.setItem("vidgrab-locale", DEFAULT_LOCALE);
+  } catch {
+    /* private mode */
+  }
+  return DEFAULT_LOCALE;
 }
 
 function serverLocaleSnapshot(): Locale {
-  return "vi";
+  return DEFAULT_LOCALE;
 }
 
 export type Translations = typeof en;
@@ -421,7 +461,7 @@ interface I18nContextValue {
 }
 
 const I18nContext = createContext<I18nContextValue>({
-  locale: "vi",
+  locale: DEFAULT_LOCALE,
   setLocale: () => {},
   t: vi,
 });
@@ -441,7 +481,23 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("lang", locale);
+    // Ensure default is always written if storage was empty after SSR hydrate
+    if (!localStorage.getItem("vidgrab-locale")) {
+      localStorage.setItem("vidgrab-locale", DEFAULT_LOCALE);
+    }
   }, [locale]);
+
+  const pathname = usePathname();
+
+  // Home document title follows locale. Legal pages set their own titles.
+  // Do not treat pathname=null as "/" — that races and overwrites legal titles.
+  useEffect(() => {
+    if (pathname == null) return;
+    const path = pathname.replace(/\/$/, "") || "/";
+    if (path === "/") {
+      document.title = translations[locale].siteTitle;
+    }
+  }, [locale, pathname]);
 
   const t = translations[locale];
 

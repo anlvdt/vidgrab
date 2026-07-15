@@ -25,7 +25,13 @@ function appPath(...parts: string[]): string {
 export function resolveYtdlpBin(): string {
   return (
     process.env.YTDLP_PATH ||
-    firstExecutable([appPath("bin", "yt-dlp"), appPath(".runtime", "bin", "yt-dlp")]) ||
+    firstExecutable([
+      // Prefer system/Homebrew first — bundled wrapper may pin an old Python.
+      "/opt/homebrew/bin/yt-dlp",
+      "/usr/local/bin/yt-dlp",
+      appPath("bin", "yt-dlp"),
+      appPath(".runtime", "bin", "yt-dlp"),
+    ]) ||
     "yt-dlp"
   );
 }
@@ -35,15 +41,25 @@ export function resolveFfmpegBin(): string {
   return (
     process.env.FFMPEG_BIN ||
     (ffmpegPath && /ffmpeg$/.test(ffmpegPath) ? ffmpegPath : null) ||
-    firstExecutable([appPath("bin", "ffmpeg"), appPath(".runtime", "bin", "ffmpeg")]) ||
+    firstExecutable([
+      "/opt/homebrew/bin/ffmpeg",
+      "/usr/local/bin/ffmpeg",
+      appPath("bin", "ffmpeg"),
+      appPath(".runtime", "bin", "ffmpeg"),
+    ]) ||
     "ffmpeg"
   );
 }
 
 export function resolveFfmpegLocation(): string | undefined {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
-  const bundled = firstExecutable([appPath("bin", "ffmpeg"), appPath(".runtime", "bin", "ffmpeg")]);
-  return bundled ? path.dirname(bundled) : undefined;
+  const found = firstExecutable([
+    "/opt/homebrew/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+    appPath("bin", "ffmpeg"),
+    appPath(".runtime", "bin", "ffmpeg"),
+  ]);
+  return found ? path.dirname(found) : undefined;
 }
 
 export function resolvePythonBin(): string {
@@ -51,11 +67,13 @@ export function resolvePythonBin(): string {
     process.env.PYTHON_BIN ||
     firstExecutable([
       appPath("bin", "python3"),
-      "/usr/bin/python3",
+      // Homebrew / modern Pythons before macOS CLT 3.9
+      "/opt/homebrew/bin/python3",
       "/usr/local/bin/python3",
       "/opt/alt/python312/bin/python3",
       "/opt/alt/python311/bin/python3",
       "/opt/alt/python310/bin/python3",
+      "/usr/bin/python3",
       "/opt/alt/python39/bin/python3",
       "/opt/alt/python38/bin/python3",
     ]) ||

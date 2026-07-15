@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Flag, X, Send, CheckCircle, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Flag, X, Send, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 interface ErrorReportProps {
@@ -15,7 +15,23 @@ export default function ErrorReport({ url, error, onRetry }: ErrorReportProps) {
   const [desc, setDesc] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   const handleSend = async () => {
     setSending(true);
@@ -33,7 +49,11 @@ export default function ErrorReport({ url, error, onRetry }: ErrorReportProps) {
       });
       if (res.ok) {
         setSent(true);
-        setTimeout(() => { setOpen(false); setSent(false); setDesc(""); }, 2000);
+        window.setTimeout(() => {
+          setOpen(false);
+          setSent(false);
+          setDesc("");
+        }, 2000);
       }
     } catch {
       // silent fail
@@ -43,89 +63,106 @@ export default function ErrorReport({ url, error, onRetry }: ErrorReportProps) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-3 justify-center">
-      {/* Retry button */}
-      <button
-        onClick={onRetry}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass text-xs font-medium text-[var(--accent-light)] hover:text-[var(--accent)] transition-colors min-h-0"
-      >
-        <RefreshCw className="w-3 h-3" />
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <button type="button" onClick={onRetry} className="btn-secondary min-h-10 px-3.5 text-xs">
+        <RefreshCw className="h-3.5 w-3.5" aria-hidden />
         {t.errorRetry}
       </button>
 
-      {/* Report button */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass text-xs font-medium text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors min-h-0"
+        className="chip-toggle min-h-10 text-xs hover:border-[color-mix(in_srgb,var(--danger)_35%,var(--border))] hover:text-[var(--danger)]"
       >
-        <Flag className="w-3 h-3" />
+        <Flag className="h-3.5 w-3.5" aria-hidden />
         {t.errorReportBtn}
       </button>
 
-      {/* Report modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-black/55 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            aria-label="Close"
+          />
           <div
-            className="relative w-full max-w-sm glass-card rounded-2xl p-5"
+            className="settings-dialog glass-card relative w-full max-w-sm rounded-2xl p-5"
             role="dialog"
             aria-modal="true"
             aria-labelledby="error-report-title"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 id="error-report-title" className="font-semibold text-sm flex items-center gap-2">
-                <Flag className="w-4 h-4 text-[var(--danger)]" />
-                {t.errorReportTitle}
-              </h3>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]">
+                  <Flag className="h-4 w-4" aria-hidden />
+                </span>
+                <h3 id="error-report-title" className="text-sm font-semibold tracking-tight">
+                  {t.errorReportTitle}
+                </h3>
+              </div>
               <button
+                ref={closeRef}
+                type="button"
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--glass-bg)] min-h-0 min-w-0"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
                 aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
 
             {sent ? (
-              <div className="flex items-center gap-2 text-[var(--success)] text-sm py-4 justify-center">
-                <CheckCircle className="w-4 h-4" />
+              <div
+                className="flex items-center justify-center gap-2 py-6 text-sm text-[var(--success)]"
+                role="status"
+              >
+                <CheckCircle className="h-4 w-4" aria-hidden />
                 {t.errorReportSuccess}
               </div>
             ) : (
               <>
-                {/* URL */}
                 <div className="mb-3">
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">{t.errorReportUrl}</label>
-                  <div className="bg-[var(--bg-secondary)] rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] truncate">
+                  <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">
+                    {t.errorReportUrl}
+                  </label>
+                  <div className="truncate rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-xs text-[var(--text-secondary)]">
                     {url}
                   </div>
                 </div>
 
-                {/* Error */}
-                <div className="mb-3">
-                  <div className="bg-[var(--danger)]/10 rounded-lg px-3 py-2 text-xs text-[var(--danger)]">
-                    {error}
-                  </div>
+                <div className="mb-3 rounded-xl border border-[color-mix(in_srgb,var(--danger)_25%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2.5 text-xs leading-relaxed text-[var(--danger)]">
+                  {error}
                 </div>
 
-                {/* Description */}
                 <div className="mb-4">
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">{t.errorReportDesc}</label>
+                  <label
+                    htmlFor="error-report-desc"
+                    className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]"
+                  >
+                    {t.errorReportDesc}
+                  </label>
                   <textarea
+                    id="error-report-desc"
                     value={desc}
                     onChange={(e) => setDesc(e.target.value)}
                     placeholder={t.errorReportDescPlaceholder}
                     rows={3}
-                    className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--accent)] resize-none"
+                    className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-[var(--accent)]"
                   />
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleSend}
                   disabled={sending}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="btn-hero w-full text-sm"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  {sending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" aria-hidden />
+                  )}
                   {sending ? t.errorReportSending : t.errorReportSend}
                 </button>
               </>

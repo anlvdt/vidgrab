@@ -18,15 +18,15 @@ export default function PlatformBadge({ url }: PlatformBadgeProps) {
 
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg glass text-sm font-medium"
+      className="inline-flex items-center gap-2 rounded-full border bg-[var(--bg-card-solid)] px-3 py-1.5 text-sm font-medium shadow-[0_1px_2px_var(--glass-shadow)]"
       style={{
-        borderColor: `${platform.color}33`,
-        boxShadow: `0 0 12px ${platform.color}20`,
+        borderColor: `${platform.color}40`,
+        boxShadow: `0 0 0 3px ${platform.color}14, 0 1px 2px var(--glass-shadow)`,
       }}
     >
-      <Icon size={16} style={{ color: platform.color }} />
+      <Icon size={15} style={{ color: platform.color }} aria-hidden />
       <span style={{ color: platform.color }}>{platform.name}</span>
-      <span className="text-[var(--text-muted)] text-xs">{t.platformDetected}</span>
+      <span className="text-xs text-[var(--text-muted)]">{t.platformDetected}</span>
     </div>
   );
 }

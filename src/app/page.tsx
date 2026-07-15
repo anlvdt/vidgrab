@@ -18,6 +18,7 @@ import AuroraBackground from "@/components/AuroraBackground";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import SettingsPanel from "@/components/SettingsPanel";
 import ErrorReport from "@/components/ErrorReport";
+import AnalyzingSkeleton from "@/components/AnalyzingSkeleton";
 import { detectPlatform } from "@/lib/platforms";
 import { useI18n } from "@/lib/i18n";
 import { AlertCircle, Download, Music } from "lucide-react";
@@ -101,12 +102,12 @@ export default function Home() {
   const { locale } = useI18n();
 
   useEffect(() => {
-    if (videoInfo || error) {
+    if (loading || videoInfo || error) {
       window.setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
     }
-  }, [error, videoInfo]);
+  }, [loading, error, videoInfo]);
 
   const handleFetch = async (url: string, isPlaylist: boolean) => {
     setLoading(true);
@@ -211,39 +212,66 @@ export default function Home() {
               : error || ""}
         </div>
 
+        {/* Analyzing skeleton */}
+        {loading && (
+          <div
+            ref={(node) => {
+              resultRef.current = node;
+            }}
+          >
+            <AnalyzingSkeleton url={currentUrl} />
+          </div>
+        )}
+
         {/* Error */}
-        {error && (
-          <section ref={resultRef} className="max-w-2xl mx-auto px-4 mb-8 scroll-mt-6" aria-labelledby="download-error-title">
-            <div
-              className="glass-card rounded-xl px-4 py-3"
-              style={{ borderColor: "var(--danger)", borderWidth: 1 }}
-            >
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[var(--danger)] shrink-0 mt-0.5" />
-                <div>
-                  <h2 id="download-error-title" className="text-sm font-semibold text-[var(--danger)]">
-                    {locale === "vi" ? "Chưa thể xử lý liên kết" : "This link could not be processed"}
-                  </h2>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1 leading-relaxed">{error}</p>
+        {error && !loading && (
+          <section
+            ref={resultRef}
+            className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 mb-8 scroll-mt-6"
+            aria-labelledby="download-error-title"
+          >
+            <div className="mx-auto w-full max-w-3xl">
+              <div className="glass-card rounded-2xl border border-[color-mix(in_srgb,var(--danger)_40%,var(--glass-border))] px-4 py-4 sm:px-5 sm:py-5">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)]">
+                    <AlertCircle className="h-4 w-4 text-[var(--danger)]" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <h2
+                      id="download-error-title"
+                      className="text-sm font-semibold tracking-tight text-[var(--danger)] sm:text-base"
+                    >
+                      {locale === "vi"
+                        ? "Chưa thể xử lý liên kết"
+                        : "This link could not be processed"}
+                    </h2>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-secondary)]">
+                      {error}
+                    </p>
+                  </div>
                 </div>
+                <ErrorReport
+                  url={currentUrl}
+                  error={error}
+                  onRetry={() => currentUrl && handleFetch(currentUrl, false)}
+                />
               </div>
-              <ErrorReport
-                url={currentUrl}
-                error={error}
-                onRetry={() => currentUrl && handleFetch(currentUrl, false)}
-              />
             </div>
           </section>
         )}
 
         {/* Video result */}
-        {videoInfo && !videoInfo.isPlaylist && (
-          <section ref={resultRef} className="px-4 pb-12 scroll-mt-6" aria-labelledby="download-result-title">
-            <div className="max-w-2xl mx-auto text-center mb-6">
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-light)] font-semibold mb-2">
+        {videoInfo && !videoInfo.isPlaylist && !loading && (
+          <section
+            ref={resultRef}
+            className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-6 pb-12"
+            aria-labelledby="download-result-title"
+          >
+            <div className="mx-auto w-full max-w-3xl mb-6 text-center">
+              <p className="section-kicker">
                 {locale === "vi" ? "Đã phân tích xong" : "Analysis complete"}
               </p>
-              <h2 id="download-result-title" className="text-2xl sm:text-3xl font-bold">
+              <h2 id="download-result-title" className="text-2xl sm:text-3xl font-bold tracking-tight">
                 {locale === "vi" ? "Chọn file muốn tải" : "Choose your download"}
               </h2>
               <p className="text-sm text-[var(--text-secondary)] mt-2">
@@ -274,7 +302,7 @@ export default function Home() {
 
             {/* Direct download (TikTok, Instagram, Twitter, Facebook via scraper) */}
             {(videoInfo.directUrl || videoInfo.cobaltUrl) && (
-              <div className="max-w-2xl mx-auto mt-6">
+              <div className="mx-auto w-full max-w-3xl mt-6">
                 <div className="flex flex-wrap gap-3 justify-center">
                   <a
                     href={buildDirectDownloadUrl(videoInfo.directUrl || videoInfo.cobaltUrl || "")}
@@ -283,10 +311,9 @@ export default function Home() {
                     onClick={(event) =>
                       handleDirectVideoDownload(event, videoInfo.directUrl || videoInfo.cobaltUrl || "")
                     }
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg hover:scale-[1.02]"
-                    style={{ boxShadow: "0 4px 20px var(--accent-glow)" }}
+                    className="btn-hero px-6 text-sm"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-4 h-4" aria-hidden />
                     {locale === "vi" ? "Tải Video" : "Download Video"}
                   </a>
                   {(videoInfo.directAudioUrl || videoInfo.cobaltAudioUrl) && (
@@ -295,9 +322,9 @@ export default function Home() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={handleDownloadStart}
-                      className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-[var(--text-primary)] font-semibold text-sm hover:scale-[1.02] transition-all"
+                      className="btn-secondary text-sm"
                     >
-                      <Music className="w-4 h-4" />
+                      <Music className="w-4 h-4" aria-hidden />
                       {locale === "vi" ? "Chỉ Âm Thanh" : "Audio Only"}
                     </a>
                   )}
@@ -324,8 +351,19 @@ export default function Home() {
         )}
 
         {/* Playlist result */}
-        {videoInfo && videoInfo.isPlaylist && videoInfo.playlistEntries && (
-          <section className="px-4 pb-12">
+        {videoInfo && videoInfo.isPlaylist && videoInfo.playlistEntries && !loading && (
+          <section
+            ref={resultRef}
+            className="mx-auto w-full max-w-7xl scroll-mt-6 px-4 pb-12 sm:px-6 lg:px-8"
+          >
+            <div className="mx-auto mb-5 w-full max-w-3xl text-center">
+              <p className="section-kicker">
+                {locale === "vi" ? "Danh sách phát" : "Playlist"}
+              </p>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                {locale === "vi" ? "Chọn video muốn tải" : "Choose videos to download"}
+              </h2>
+            </div>
             <PlaylistQueue
               entries={videoInfo.playlistEntries}
               onDownloadStart={handleDownloadStart}
@@ -334,7 +372,12 @@ export default function Home() {
         )}
 
         {/* Download History */}
-        <DownloadHistory />
+        <DownloadHistory
+          onReopen={(url) => {
+            handleFetch(url, false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
 
         {/* Platform Grid */}
         <PlatformGrid />

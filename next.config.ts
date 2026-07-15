@@ -1,5 +1,43 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
+/**
+ * CSP for the app shell.
+ * Dev allows 'unsafe-eval' so React / Next / Turbopack debug helpers work
+ * (otherwise: "eval() is not supported in this environment").
+ * Production stays strict — React does not need eval there.
+ */
+function contentSecurityPolicy(): string {
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    ...(isDev ? ["'unsafe-eval'"] as const : []),
+    "https://pagead2.googlesyndication.com",
+    "https://googleads.g.doubleclick.net",
+  ].join(" ");
+
+  const connectSrc = [
+    "'self'",
+    "https:",
+    // Turbopack / Next HMR websocket in local dev
+    ...(isDev ? ["ws:", "wss:"] as const : []),
+  ].join(" ");
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https:",
+    `connect-src ${connectSrc}`,
+    "frame-src https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingExcludes: {
@@ -29,18 +67,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           {
             key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https:",
-              "media-src 'self' blob: https:",
-              "connect-src 'self' https:",
-              "frame-src https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; "),
+            value: contentSecurityPolicy(),
           },
         ],
       },

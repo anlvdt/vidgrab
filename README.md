@@ -4,6 +4,9 @@ VidGrab is a Next.js video downloader for public video links from popular
 platforms in Vietnam. It is configured to run from the iNET domain
 `https://vidgrab.io.vn`.
 
+Layout, spacing, and content widths follow **[design.md](./design.md)**
+(international web measure, 8-pt grid, capped shell for 16:9).
+
 ## Getting Started
 
 Install dependencies and run the development server:

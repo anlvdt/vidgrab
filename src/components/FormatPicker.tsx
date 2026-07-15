@@ -105,15 +105,14 @@ export default function FormatPicker({
   const triggerDownload = useCallback(
     (params: URLSearchParams) => {
       onDownloadStart?.();
-      // Add SponsorBlock setting from localStorage (Arroxy feature)
-      const sponsorBlock = typeof window !== "undefined"
-        ? localStorage.getItem("vidgrab-sponsorblock") || "off"
-        : "off";
+      const sponsorBlock =
+        typeof window !== "undefined"
+          ? localStorage.getItem("vidgrab-sponsorblock") || "off"
+          : "off";
       if (sponsorBlock !== "off") {
         params.set("sponsorblock", sponsorBlock);
       }
       applyLogoRemovalParams(params, params.get("audio") !== "true");
-      // Add clip range if specified
       if (clipMode && startTime) {
         params.set("start", startTime);
       }
@@ -154,7 +153,11 @@ export default function FormatPicker({
   };
 
   const handleAudioDownload = () => {
-    const params = new URLSearchParams({ url: videoUrl, title: videoTitle, audio: "true" });
+    const params = new URLSearchParams({
+      url: videoUrl,
+      title: videoTitle,
+      audio: "true",
+    });
     if (videoId) params.set("videoId", videoId);
     if (uploader) params.set("uploader", uploader);
     if (platform) params.set("platform", platform);
@@ -169,107 +172,107 @@ export default function FormatPicker({
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-6">
-      <div className="flex flex-wrap gap-3 mb-6 justify-center">
-        <button
-          onClick={handleBestDownload}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02]"
-          style={{ boxShadow: "0 4px 20px var(--accent-glow)" }}
-        >
-          <Download className="w-4 h-4" />
+    <div className="mx-auto mt-6 w-full max-w-3xl">
+      <div className="mb-5 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+        <button type="button" onClick={handleBestDownload} className="btn-hero px-5 text-sm">
+          <Download className="h-4 w-4" aria-hidden />
           {t.bestQuality}
         </button>
-        <button
-          onClick={handleAudioDownload}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-[var(--text-primary)] font-semibold text-sm hover:scale-[1.02] transition-all"
-        >
-          <Music className="w-4 h-4" />
+        <button type="button" onClick={handleAudioDownload} className="btn-secondary text-sm">
+          <Music className="h-4 w-4" aria-hidden />
           {t.audioOnly}
         </button>
-
-          <button
-            onClick={() => setClipMode(!clipMode)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${clipMode ? "bg-[var(--accent)] text-white" : "glass text-[var(--text-secondary)]"}`}
+        <button
+          type="button"
+          onClick={() => setClipMode(!clipMode)}
+          aria-pressed={clipMode}
+          className={`chip-toggle ${clipMode ? "is-active" : ""}`}
         >
-            <Film className="w-4 h-4" />
-            {t.clipLabel}
-          </button>
+          <Film className="h-4 w-4" aria-hidden />
+          {t.clipLabel}
+        </button>
       </div>
 
       {tab === "audio" && <WaveformVisualizer />}
 
       {clipMode && (
-        <div className="flex flex-wrap items-center gap-3 justify-center mb-5 glass rounded-xl p-3">
+        <div className="mb-5 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card-solid)] p-3.5 shadow-[0_1px_2px_var(--glass-shadow)]">
           <div className="flex items-center gap-2">
-            <label htmlFor="clip-start" className="text-xs text-[var(--text-muted)]">{t.clipStart}</label>
+            <label htmlFor="clip-start" className="text-xs font-medium text-[var(--text-muted)]">
+              {t.clipStart}
+            </label>
             <input
               id="clip-start"
               type="text"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               placeholder="0:00"
-              className="w-20 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-sm border border-[var(--border)] focus:border-[var(--accent)] outline-none"
+              className="w-20 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--accent)]"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="clip-end" className="text-xs text-[var(--text-muted)]">{t.clipEnd}</label>
+            <label htmlFor="clip-end" className="text-xs font-medium text-[var(--text-muted)]">
+              {t.clipEnd}
+            </label>
             <input
               id="clip-end"
               type="text"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               placeholder={t.clipEndPlaceholder}
-              className="w-20 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-sm border border-[var(--border)] focus:border-[var(--accent)] outline-none"
+              className="w-20 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--accent)]"
             />
           </div>
         </div>
       )}
 
-      <div className="flex items-center gap-1 glass rounded-xl p-1 mb-5 max-w-xs mx-auto">
+      <div
+        className="seg-control mx-auto mb-5 max-w-sm"
+        role="tablist"
+        aria-label={locale === "vi" ? "Lọc định dạng" : "Filter formats"}
+      >
         {(["all", "video", "audio"] as FilterTab[]).map((tt) => (
           <button
             key={tt}
+            type="button"
+            role="tab"
+            aria-selected={tab === tt}
             onClick={() => setTab(tt)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-              tab === tt
-                ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            }`}
+            className={`seg-option ${tab === tt ? "is-active" : ""}`}
           >
-            {tt === "all" && <Monitor className="w-3.5 h-3.5" />}
-            {tt === "video" && <Film className="w-3.5 h-3.5" />}
-            {tt === "audio" && <Music className="w-3.5 h-3.5" />}
+            {tt === "all" && <Monitor className="h-3.5 w-3.5" aria-hidden />}
+            {tt === "video" && <Film className="h-3.5 w-3.5" aria-hidden />}
+            {tt === "audio" && <Music className="h-3.5 w-3.5" aria-hidden />}
             {tabLabels[tt]}
           </button>
         ))}
       </div>
 
       <div className="space-y-2">
-        {displayed.map((format, i) => (
+        {displayed.map((format) => (
           <div
             key={format.formatId}
-            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 glass-card rounded-xl px-4 py-3 group"
-            style={{ animationDelay: `${i * 0.05}s` }}
+            className="glass-card flex flex-col gap-3 rounded-xl px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4"
           >
-            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold text-white ${
                   format.hasVideo ? "badge-video" : "badge-audio"
-                } text-white`}
+                }`}
               >
                 {format.quality}
               </span>
               {format.isHdr && (
-                <span className="badge-hdr px-2 py-0.5 rounded-md text-xs font-bold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
+                <span className="badge-hdr inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold">
+                  <Sparkles className="h-3 w-3" aria-hidden />
                   HDR
                 </span>
               )}
-              <span className="text-xs text-[var(--text-muted)] uppercase font-mono">
+              <span className="font-mono text-xs uppercase text-[var(--text-muted)]">
                 {format.ext}
               </span>
               {format.fps && format.fps > 30 && (
-                <span className="text-xs text-[var(--accent-light)] font-medium">
+                <span className="text-xs font-medium text-[var(--accent-light)]">
                   {format.fps}fps
                 </span>
               )}
@@ -281,16 +284,20 @@ export default function FormatPicker({
                     : t.formatMerged}
               </span>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-              <span className="text-xs text-[var(--text-secondary)]">
-                {formatSize(format.filesize || format.filesizeApprox, !format.filesize && !!format.filesizeApprox)}
+            <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+              <span className="text-xs tabular-nums text-[var(--text-secondary)]">
+                {formatSize(
+                  format.filesize || format.filesizeApprox,
+                  !format.filesize && !!format.filesizeApprox
+                )}
               </span>
               <button
+                type="button"
                 onClick={() => handleDownload(format)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--accent-light)] bg-[var(--accent)]/10 hover:bg-[var(--accent)] hover:text-white transition-all"
+                className="btn-format"
                 aria-label={`${t.downloadLabel} ${format.quality} ${format.ext}`}
               >
-                <Download className="w-4 h-4" />
+                <Download className="h-4 w-4" aria-hidden />
                 {t.downloadLabel}
               </button>
             </div>
@@ -300,19 +307,21 @@ export default function FormatPicker({
 
       {filtered.length > 8 && !showAll && (
         <button
+          type="button"
           onClick={() => setShowAll(true)}
-          className="flex items-center gap-2 mx-auto mt-4 text-sm text-[var(--accent-light)] hover:text-[var(--accent)] transition-colors"
+          className="mx-auto mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--accent-light)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
         >
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="h-4 w-4" aria-hidden />
           {filtered.length - 8} {t.showMore}
         </button>
       )}
       {showAll && filtered.length > 8 && (
         <button
+          type="button"
           onClick={() => setShowAll(false)}
-          className="flex items-center gap-2 mx-auto mt-4 text-sm text-[var(--text-secondary)] hover:text-[var(--accent-light)] transition-colors"
+          className="mx-auto mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--accent-light)]"
         >
-          <ChevronDown className="w-4 h-4 rotate-180" />
+          <ChevronDown className="h-4 w-4 rotate-180" aria-hidden />
           {locale === "vi" ? "Thu gọn định dạng" : "Show fewer formats"}
         </button>
       )}

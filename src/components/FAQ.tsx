@@ -5,8 +5,8 @@ import { ChevronDown } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 export default function FAQ() {
-  const [open, setOpen] = useState<number | null>(null);
-  const { t } = useI18n();
+  const [open, setOpen] = useState<number | null>(0);
+  const { t, locale } = useI18n();
 
   const faqs = [
     { q: t.faq1Q, a: t.faq1A },
@@ -19,38 +19,77 @@ export default function FAQ() {
   ];
 
   return (
-    <section className="relative z-10 px-3 py-12 sm:px-6 sm:py-16">
-      <div className="mx-auto max-w-3xl">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-          {t.faqTitle}
-        </h2>
+    <section className="relative z-10 py-[var(--space-8)] sm:py-[var(--space-10)]">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="mb-8 text-center sm:mb-10">
+            <p className="section-kicker">FAQ</p>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {t.faqTitle}
+            </h2>
+          </div>
 
-        <div className="space-y-2.5 sm:space-y-3">
-          {faqs.map((faq, i) => (
-            <div key={i} className="glass-card rounded-xl overflow-hidden">
-              <button
-                onClick={() => setOpen(open === i ? null : i)}
-                className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 text-left transition-colors hover:bg-[var(--glass-bg)]"
-                aria-expanded={open === i}
-              >
-                <span className="font-medium text-xs sm:text-sm pr-4">{faq.q}</span>
-                <ChevronDown
-                  className={`w-4 h-4 shrink-0 text-[var(--text-secondary)] transition-transform duration-300 ${
-                    open === i ? "rotate-180" : ""
+          <div className="space-y-2.5">
+            {faqs.map((faq, i) => {
+              const isOpen = open === i;
+              return (
+                <div
+                  key={i}
+                  className={`glass-card overflow-hidden rounded-xl transition-[border-color,box-shadow] ${
+                    isOpen
+                      ? "border-[color-mix(in_srgb,var(--accent)_35%,var(--glass-border))] shadow-[0_8px_28px_color-mix(in_srgb,var(--glass-shadow)_65%,transparent)]"
+                      : ""
                   }`}
-                />
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-300 ${
-                  open === i ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="px-4 sm:px-5 pb-4 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  {faq.a}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? null : i)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--section-bg)] sm:px-5 sm:py-4"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-panel-${i}`}
+                    id={`faq-button-${i}`}
+                  >
+                    <span
+                      className={`pr-2 text-xs font-medium sm:text-sm ${
+                        isOpen ? "text-[var(--text-primary)]" : ""
+                      }`}
+                    >
+                      {faq.q}
+                    </span>
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                        isOpen
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-light)]"
+                          : "text-[var(--text-secondary)]"
+                      }`}
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                        aria-hidden
+                      />
+                    </span>
+                  </button>
+                  <div
+                    id={`faq-panel-${i}`}
+                    role="region"
+                    aria-labelledby={`faq-button-${i}`}
+                    hidden={!isOpen}
+                  >
+                    <div className="border-t border-[var(--border)] px-4 pb-4 pt-3 text-xs leading-relaxed text-[var(--text-secondary)] sm:px-5 sm:text-sm">
+                      {faq.a}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
+          <p className="mt-4 text-center text-[11px] text-[var(--text-muted)]">
+            {locale === "vi"
+              ? "Còn câu hỏi? Mở issue trên GitHub."
+              : "More questions? Open a GitHub issue."}
+          </p>
         </div>
       </div>
     </section>

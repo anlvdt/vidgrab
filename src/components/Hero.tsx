@@ -7,6 +7,7 @@ import {
   List,
   Loader2,
   Clipboard,
+  ClipboardCheck,
   ShieldCheck,
   History,
   FileCheck2,
@@ -27,6 +28,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   const [url, setUrl] = useState("");
   const [playlistMode, setPlaylistMode] = useState(false);
   const [invalidUrl, setInvalidUrl] = useState(false);
+  const [pasted, setPasted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
 
@@ -36,10 +38,12 @@ export default function Hero({ onFetch, loading }: HeroProps) {
       if (text && /^https?:\/\/.+/i.test(text.trim())) {
         setUrl(text.trim());
         setInvalidUrl(false);
+        setPasted(true);
         inputRef.current?.focus();
+        window.setTimeout(() => setPasted(false), 1600);
       }
     } catch {
-      // Clipboard permission denied
+      // Clipboard permission denied — user can still type/paste manually
     }
   };
 
@@ -58,135 +62,174 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   };
 
   return (
-    <section className="relative px-3 pb-10 pt-4 sm:px-6 sm:pb-14">
-      {/* Top bar */}
-      <nav className="mx-auto mb-12 flex max-w-6xl items-center justify-between sm:mb-16">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] shadow-[0_8px_24px_var(--accent-glow)]">
-            <Zap className="w-4.5 h-4.5 text-white" />
+    <section className="relative pb-12 sm:pb-16">
+      <div className="nav-chrome mb-10 sm:mb-14">
+        <nav
+          className="mx-auto flex min-h-12 w-full max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8"
+          aria-label="Primary"
+        >
+          <div className="flex min-h-11 items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-hover)] to-[var(--accent)] shadow-[0_8px_24px_var(--accent-glow)] ring-1 ring-white/10">
+              <Zap className="h-4 w-4 text-white" aria-hidden />
+            </div>
+            <span className="text-xl font-bold tracking-tight">
+              Vid<span className="gradient-text">Grab</span>
+            </span>
           </div>
-          <span className="text-xl font-bold tracking-tight">
-            Vid<span className="gradient-text">Grab</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <LangToggle />
-          <ThemeToggle />
-        </div>
-      </nav>
-
-      <div className="relative mx-auto max-w-6xl text-center">
-        <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-card-solid)] px-3 py-1.5 text-xs font-medium text-[var(--accent-light)]">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          {t.heroOtherSites}
-        </div>
-        <h1 className="mx-auto mb-4 max-w-3xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-balance sm:text-5xl lg:text-[3.5rem]">
-          {t.heroTitle}
-        </h1>
-        <p className="mx-auto mb-7 max-w-xl text-balance text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
-          {t.heroSubtitle}
-        </p>
-
-        {url.trim() && (
-          <div className="mb-4 flex justify-center">
-            <PlatformBadge url={url} />
+          <div className="flex min-h-11 items-center gap-2">
+            <LangToggle />
+            <ThemeToggle />
           </div>
-        )}
+        </nav>
+      </div>
 
-        <form onSubmit={handleSubmit} noValidate className="relative mx-auto max-w-5xl" aria-busy={loading}>
-          <div
-            className="download-shell flex flex-col items-stretch gap-2 rounded-2xl p-2 sm:flex-row sm:items-center sm:pl-4"
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative mx-auto w-full max-w-3xl text-center">
+          <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-card-solid)]/90 px-3.5 py-1.5 text-xs font-medium text-[var(--accent-light)] shadow-[0_1px_2px_var(--glass-shadow),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="truncate">{t.heroOtherSites}</span>
+          </div>
+
+          <h1 className="mx-auto mb-4 max-w-[18em] text-balance text-[1.9rem] font-bold leading-[1.12] tracking-[-0.035em] sm:max-w-none sm:text-4xl lg:text-[2.85rem]">
+            {t.heroTitle}
+          </h1>
+          <p className="mx-auto mb-8 max-w-md text-pretty text-[0.95rem] leading-relaxed text-[var(--text-secondary)] sm:text-base">
+            {t.heroSubtitle}
+          </p>
+
+          {url.trim() && (
+            <div className="mb-4 flex justify-center">
+              <PlatformBadge url={url} />
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="relative mx-auto w-full max-w-3xl"
+            aria-busy={loading}
           >
-            <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 sm:px-0">
-              <Search className="h-5 w-5 shrink-0 text-[var(--accent-light)]" />
-              <input
-                ref={inputRef}
-                type="url"
-                inputMode="url"
-                enterKeyHint="go"
-                autoComplete="off"
-                spellCheck={false}
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  if (invalidUrl) setInvalidUrl(false);
-                }}
-                placeholder={t.heroPlaceholder}
-                className="min-w-0 flex-1 bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-                aria-label={t.heroPlaceholder}
-                aria-invalid={invalidUrl}
-                aria-describedby="url-help"
-              />
+            <div
+              className={`download-shell flex flex-col items-stretch gap-2 p-2 sm:flex-row sm:items-center sm:pl-4 ${
+                invalidUrl ? "is-invalid" : ""
+              } ${pasted && !invalidUrl ? "is-pasted" : ""}`}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-2 sm:gap-3 sm:px-0">
+                <Search
+                  className="h-5 w-5 shrink-0 text-[var(--accent-light)]"
+                  aria-hidden
+                />
+                <input
+                  ref={inputRef}
+                  type="url"
+                  inputMode="url"
+                  enterKeyHint="go"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (invalidUrl) setInvalidUrl(false);
+                    if (pasted) setPasted(false);
+                  }}
+                  placeholder={t.heroPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                  aria-label={t.heroPlaceholder}
+                  aria-invalid={invalidUrl}
+                  aria-describedby="url-help"
+                />
+                <button
+                  type="button"
+                  onClick={handleSmartPaste}
+                  className={`paste-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+                    pasted
+                      ? "is-success"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
+                  }`}
+                  aria-label={t.pasteButton}
+                >
+                  {pasted ? (
+                    <ClipboardCheck className="paste-icon h-4 w-4" aria-hidden />
+                  ) : (
+                    <Clipboard className="paste-icon h-4 w-4" aria-hidden />
+                  )}
+                  <span className="hidden md:inline">
+                    {pasted ? t.pasteSuccess : t.pasteButton}
+                  </span>
+                </button>
+              </div>
+
               <button
-                type="button"
-                onClick={handleSmartPaste}
-                className="compact-control inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
-                aria-label={t.pasteButton}
+                type="submit"
+                disabled={loading || !url.trim()}
+                aria-describedby="url-help"
+                className="btn-hero shrink-0 sm:min-w-[9.5rem]"
               >
-                <Clipboard className="w-4 h-4" />
-                <span className="hidden md:inline">{t.pasteButton}</span>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    {t.heroFetching}
+                  </>
+                ) : (
+                  t.heroFetch
+                )}
               </button>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_var(--accent-glow)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:bg-[var(--button-disabled)] disabled:text-[var(--text-muted)] disabled:shadow-none"
-              style={{
-                boxShadow: url.trim()
-                  ? "0 4px 20px var(--accent-glow)"
-                  : "none",
-              }}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t.heroFetching}
-                </>
-              ) : (
-                t.heroFetch
-              )}
-            </button>
-          </div>
-
-          <p
-            id="url-help"
-            className={`text-xs mt-2.5 ${invalidUrl ? "text-[var(--danger)]" : "text-[var(--text-muted)]"}`}
-            role={invalidUrl ? "alert" : undefined}
-          >
-            {invalidUrl ? t.heroInvalidUrl : t.heroPasteHint}
-          </p>
-
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setPlaylistMode(!playlistMode)}
-              className={`compact-control flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                playlistMode
-                  ? "bg-[var(--accent-soft)] text-[var(--accent-light)] ring-1 ring-[var(--accent)]"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
+            <p
+              id="url-help"
+              className={`mt-2.5 text-left text-xs sm:text-center ${
+                invalidUrl
+                  ? "font-medium text-[var(--danger)]"
+                  : pasted
+                    ? "paste-feedback"
+                    : "text-[var(--text-muted)]"
               }`}
+              role={invalidUrl ? "alert" : pasted ? "status" : undefined}
             >
-              <List className="w-4 h-4" />
-              {t.heroPlaylist}
-              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${playlistMode ? "rotate-90" : ""}`} />
-            </button>
-          </div>
-        </form>
+              {invalidUrl
+                ? t.heroInvalidUrl
+                : pasted
+                  ? t.pasteSuccessHint
+                  : t.heroPasteHint}
+            </p>
 
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-[var(--text-secondary)]">
-          {[
-            { icon: ShieldCheck, label: t.heroTrustPrivate },
-            { icon: History, label: t.heroTrustHistory },
-            { icon: FileCheck2, label: t.heroTrustFilename },
-          ].map(({ icon: Icon, label }) => (
-            <span key={label} className="inline-flex items-center gap-1.5">
-              <Icon className="w-3.5 h-3.5 text-[var(--success)]" />
-              {label}
-            </span>
-          ))}
+            <div className="mt-4 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setPlaylistMode(!playlistMode)}
+                aria-pressed={playlistMode}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
+                  playlistMode
+                    ? "bg-[var(--accent-soft)] text-[var(--accent-light)] ring-1 ring-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                <List className="h-4 w-4" aria-hidden />
+                {t.heroPlaylist}
+                <ChevronRight
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                    playlistMode ? "rotate-90" : ""
+                  }`}
+                  aria-hidden
+                />
+              </button>
+            </div>
+          </form>
+
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {[
+              { icon: ShieldCheck, label: t.heroTrustPrivate },
+              { icon: History, label: t.heroTrustHistory },
+              { icon: FileCheck2, label: t.heroTrustFilename },
+            ].map(({ icon: Icon, label }) => (
+              <li key={label} className="trust-chip">
+                <Icon className="h-3.5 w-3.5 text-[var(--success)]" aria-hidden />
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
-
       </div>
     </section>
   );

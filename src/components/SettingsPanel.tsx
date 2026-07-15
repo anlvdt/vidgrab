@@ -54,129 +54,143 @@ export default function SettingsPanel() {
     };
   }, [open]);
 
+  const flashSaved = () => {
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2000);
+  };
+
   const saveSponsorBlock = (mode: string) => {
     setSponsorBlock(mode);
     localStorage.setItem("vidgrab-sponsorblock", mode);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    flashSaved();
   };
 
   const saveLogoRemoval = (mode: LogoRemovalMode) => {
     setLogoRemoval(mode);
     localStorage.setItem(LOGO_REMOVAL_STORAGE_KEY, mode);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    flashSaved();
   };
 
   const saveLogoPosition = (position: LogoPosition) => {
     setLogoPosition(position);
     localStorage.setItem(LOGO_POSITION_STORAGE_KEY, position);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    flashSaved();
   };
 
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card-solid)] text-[var(--text-secondary)] shadow-lg transition-colors hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
+        className="fab-settings"
         aria-label={vi ? "Mở cài đặt tải xuống" : "Open download settings"}
       >
-        <Settings className="w-5 h-5" />
+        <Settings className="h-5 w-5" aria-hidden />
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <button
             type="button"
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+            className="absolute inset-0 cursor-default bg-black/55 backdrop-blur-sm"
             onClick={() => setOpen(false)}
             aria-label={vi ? "Đóng cài đặt" : "Close settings"}
           />
           <div
-            className="relative w-full max-w-lg mx-4 mb-4 sm:mb-0 glass-card rounded-2xl p-5 sm:p-6"
+            className="settings-dialog glass-card relative mx-3 mb-3 w-full max-w-lg rounded-2xl p-5 sm:mx-4 sm:mb-0 sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby="settings-title"
           >
-            <div className="flex items-center justify-between mb-5">
-              <h3 id="settings-title" className="font-bold text-lg flex items-center gap-2">
-                <Settings className="w-5 h-5 text-[var(--accent-light)]" />
-                {vi ? "Cài Đặt" : "Settings"}
-              </h3>
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-light)]">
+                  <Settings className="h-4 w-4" aria-hidden />
+                </span>
+                <div>
+                  <h3 id="settings-title" className="text-base font-bold tracking-tight sm:text-lg">
+                    {vi ? "Cài đặt tải xuống" : "Download settings"}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {vi ? "Áp dụng cho lần tải tiếp theo" : "Applies to your next download"}
+                  </p>
+                </div>
+              </div>
               <button
                 ref={closeButtonRef}
+                type="button"
                 onClick={() => setOpen(false)}
-                className="p-2 rounded-lg hover:bg-[var(--glass-bg)]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
                 aria-label={vi ? "Đóng" : "Close"}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
 
             {saved && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-4 text-sm bg-[var(--success)]/10 text-[var(--success)]">
-                <CheckCircle className="w-4 h-4" />
+              <div
+                className="mb-4 flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)] px-3 py-2.5 text-sm text-[var(--success)]"
+                role="status"
+              >
+                <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
                 {vi ? "Đã lưu cài đặt" : "Settings saved"}
               </div>
             )}
 
             <div className="space-y-5">
-              <div>
-              <label className="flex items-center gap-2 text-sm font-medium mb-2">
-                <Shield className="w-4 h-4 text-[var(--accent-light)]" />
-                SponsorBlock
-              </label>
-              <p className="text-xs text-[var(--text-muted)] mb-2">
-                {vi
-                  ? "Tự động bỏ qua hoặc đánh dấu quảng cáo, intro, outro trong video YouTube."
-                  : "Auto-skip or chapter-mark sponsors, intros, and outros in YouTube videos."}
-              </p>
-              <div className="flex gap-2">
-                {[
-                  { value: "off", label: vi ? "Tắt" : "Off" },
-                  { value: "mark", label: vi ? "Đánh dấu" : "Mark" },
-                  { value: "remove", label: vi ? "Cắt bỏ" : "Remove" },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => saveSponsorBlock(option.value)}
-                    aria-pressed={sponsorBlock === option.value}
-                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      sponsorBlock === option.value
-                        ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
-                        : "glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+              <section className="rounded-2xl border border-[var(--border)] bg-[var(--section-bg)] p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                  <Shield className="h-4 w-4 text-[var(--accent-light)]" aria-hidden />
+                  SponsorBlock
+                </div>
+                <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
+                  {vi
+                    ? "Tự động bỏ qua hoặc đánh dấu quảng cáo, intro, outro trong video YouTube."
+                    : "Auto-skip or chapter-mark sponsors, intros, and outros in YouTube videos."}
+                </p>
+                <div className="seg-control" role="group" aria-label="SponsorBlock">
+                  {[
+                    { value: "off", label: vi ? "Tắt" : "Off" },
+                    { value: "mark", label: vi ? "Đánh dấu" : "Mark" },
+                    { value: "remove", label: vi ? "Cắt bỏ" : "Remove" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => saveSponsorBlock(option.value)}
+                      aria-pressed={sponsorBlock === option.value}
+                      className={`seg-option ${
+                        sponsorBlock === option.value ? "is-active" : ""
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-2">
-                  <Eraser className="w-4 h-4 text-[var(--accent-light)]" />
+              <section className="rounded-2xl border border-[var(--border)] bg-[var(--section-bg)] p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                  <Eraser className="h-4 w-4 text-[var(--accent-light)]" aria-hidden />
                   {vi ? "Che logo trước khi tải" : "Hide logo before download"}
-                </label>
-                <p className="text-xs text-[var(--text-muted)] mb-2">
+                </div>
+                <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
                   {vi
                     ? "Làm mờ vùng logo ở một góc video. Chỉ dùng cho video bạn có quyền chỉnh sửa; file sẽ xử lý lâu hơn."
                     : "Blurs a corner logo area. Use only for videos you have rights to edit; downloads take longer."}
                 </p>
-                <div className="flex gap-2 mb-3">
+                <div className="seg-control mb-3" role="group" aria-label={vi ? "Che logo" : "Hide logo"}>
                   {[
-                    { value: "off", label: vi ? "Tắt" : "Off" },
-                    { value: "blur", label: vi ? "Che logo" : "Hide logo" },
+                    { value: "off" as const, label: vi ? "Tắt" : "Off" },
+                    { value: "blur" as const, label: vi ? "Che logo" : "Hide logo" },
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => saveLogoRemoval(option.value as LogoRemovalMode)}
+                      type="button"
+                      onClick={() => saveLogoRemoval(option.value)}
                       aria-pressed={logoRemoval === option.value}
-                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        logoRemoval === option.value
-                          ? "bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-md"
-                          : "glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      className={`seg-option ${
+                        logoRemoval === option.value ? "is-active" : ""
                       }`}
                     >
                       {option.label}
@@ -187,19 +201,18 @@ export default function SettingsPanel() {
                 {logoRemoval === "blur" && (
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { value: "top-left", label: vi ? "Trên trái" : "Top left" },
-                      { value: "top-right", label: vi ? "Trên phải" : "Top right" },
-                      { value: "bottom-left", label: vi ? "Dưới trái" : "Bottom left" },
-                      { value: "bottom-right", label: vi ? "Dưới phải" : "Bottom right" },
+                      { value: "top-left" as const, label: vi ? "Trên trái" : "Top left" },
+                      { value: "top-right" as const, label: vi ? "Trên phải" : "Top right" },
+                      { value: "bottom-left" as const, label: vi ? "Dưới trái" : "Bottom left" },
+                      { value: "bottom-right" as const, label: vi ? "Dưới phải" : "Bottom right" },
                     ].map((option) => (
                       <button
                         key={option.value}
-                        onClick={() => saveLogoPosition(option.value as LogoPosition)}
+                        type="button"
+                        onClick={() => saveLogoPosition(option.value)}
                         aria-pressed={logoPosition === option.value}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                          logoPosition === option.value
-                            ? "bg-[var(--accent)] text-white shadow-md"
-                            : "glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        className={`seg-option ${
+                          logoPosition === option.value ? "is-active" : ""
                         }`}
                       >
                         {option.label}
@@ -207,7 +220,7 @@ export default function SettingsPanel() {
                     ))}
                   </div>
                 )}
-              </div>
+              </section>
             </div>
           </div>
         </div>
