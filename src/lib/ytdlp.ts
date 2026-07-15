@@ -51,6 +51,7 @@ const CHROME_UA =
  * tv,web_safari when one is. Each attempt rotates to a different client family.
  */
 const MAX_RETRY_ATTEMPTS = 3;
+const GENERIC_RETRY_ATTEMPTS = 2;
 
 // ─── Rate Limiter ────────────────────────────────────────────
 class RateLimiter {
@@ -170,7 +171,7 @@ export interface DownloadOptions {
 }
 
 // ─── Base Args Builder ───────────────────────────────────────
-function baseArgs(opts?: DownloadOptions): string[] {
+function baseArgs(opts?: DownloadOptions, sourceUrl?: string): string[] {
   const args: string[] = ["--no-warnings"];
 
   if (opts?.cookies !== false && COOKIES_PATH) {
@@ -186,7 +187,28 @@ function baseArgs(opts?: DownloadOptions): string[] {
   args.push("--extractor-retries", "3");
   args.push("--socket-timeout", "30");
   args.push("--user-agent", CHROME_UA);
-  args.push("--referer", "https://www.youtube.com/");
+
+  // yt-dlp-ejs needs an explicit supported JS runtime for full YouTube
+  // extraction. Node is already part of the Next.js runtime image; operators
+  // can override it for Deno/Bun/QuickJS or disable it with "off".
+  const jsRuntime = process.env.YTDLP_JS_RUNTIME || "node";
+  if (jsRuntime !== "off") args.push("--js-runtimes", jsRuntime);
+
+  // A YouTube referer is harmful on unrelated extractors. Keep platform
+  // context only where it is useful and otherwise let yt-dlp choose headers.
+  if (sourceUrl) {
+    try {
+      const source = new URL(sourceUrl);
+      if (/youtube\.com|youtu\.be/i.test(source.hostname)) {
+        args.push("--referer", "https://www.youtube.com/");
+      } else if (/tiktok\.com/i.test(source.hostname)) {
+        args.push("--referer", "https://www.tiktok.com/");
+      }
+    } catch {
+      // URL validation happens at the route boundary; optional headers must
+      // never make an otherwise valid extraction fail.
+    }
+  }
   args.push("--force-ipv4");
   args.push("--geo-bypass");
 
@@ -291,8 +313,9 @@ export async function getVideoInfo(
   const isYT = isYouTubeUrl(cleanUrl);
   let lastError = "";
   let lastSignal: StderrSignal = null;
+  const maxAttempts = isYT ? MAX_RETRY_ATTEMPTS : GENERIC_RETRY_ATTEMPTS;
 
-  for (let attempt = 0; attempt < (isYT ? MAX_RETRY_ATTEMPTS : 1); attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Rate limit YouTube requests
     if (isYT) {
       await ytRateLimiter.acquire();
@@ -300,7 +323,7 @@ export async function getVideoInfo(
 
     try {
       const args = [
-        ...baseArgs(opts),
+        ...baseArgs(opts, cleanUrl),
         "--dump-json",
         "--no-playlist",
         "--skip-download",
@@ -347,17 +370,21 @@ export async function getVideoInfo(
 
       // Determine if we should retry (Arroxy's logic)
       const isRetryable =
-        isYT &&
-        attempt < MAX_RETRY_ATTEMPTS - 1 &&
-        (lastSignal === 'botBlock' ||
-          lastSignal === 'rateLimit' ||
-          lastSignal === 'nsig' ||
-          lastSignal === 'formatUnavailable');
+        attempt < maxAttempts - 1 &&
+        (isYT
+          ? lastSignal === 'botBlock' ||
+            lastSignal === 'rateLimit' ||
+            lastSignal === 'nsig' ||
+            lastSignal === 'formatUnavailable'
+          : lastSignal === 'botBlock' ||
+            lastSignal === 'rateLimit' ||
+            lastSignal === 'networkError' ||
+            lastSignal === 'formatUnavailable');
 
       if (isRetryable) {
         const delay = getRetryDelay(attempt, lastSignal);
         console.warn(
-          `[yt-dlp] info attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS} failed (${lastSignal}), retrying in ${delay}ms with next player client`
+          `[yt-dlp] info attempt ${attempt + 1}/${maxAttempts} failed (${lastSignal}), retrying in ${delay}ms`
         );
         await sleep(delay);
         continue;
@@ -397,7 +424,7 @@ export async function getPlaylistInfo(
 
   try {
     const args = [
-      ...baseArgs(opts),
+      ...baseArgs(opts, cleanUrl),
       "--dump-json",
       "--flat-playlist",
       "--retries",
@@ -473,11 +500,12 @@ export function buildDownloadArgs(
   opts?: DownloadOptions
 ): string[] {
   const cleanUrl = sanitizeUrl(url);
-  const args = baseArgs(opts);
+  const args = baseArgs(opts, cleanUrl);
 
   // Adaptive fragment count based on rate limit history
   const frags = getRateLimitCount() >= 2 ? 2 : getRateLimitCount() > 0 ? 4 : 8;
   args.push("-N", String(frags));
+  args.push("--fragment-retries", "10");
 
   if (isYouTubeUrl(cleanUrl)) {
     args.push("--extractor-args", withPotProvider(defaultPlayerClient(HAS_POT), POT_BASE_URL));
@@ -637,7 +665,7 @@ export function spawnDownloadWithRetry(
           return;
         }
 
-        const args = baseArgs(opts);
+        const args = baseArgs(opts, cleanUrl);
 
         // Adaptive fragment count
         const frags =
@@ -809,19 +837,24 @@ export function spawnDownloadWithRetry(
           // Retry on bot-block, rate-limit, nsig — and formatUnavailable, since
           // rotating the player client can expose a format the first client
           // didn't list. Only before any bytes were produced.
+          const maxAttempts = isYT ? MAX_RETRY_ATTEMPTS : GENERIC_RETRY_ATTEMPTS;
           const isRetryable =
-            isYT &&
-            currentAttempt < MAX_RETRY_ATTEMPTS - 1 &&
-            (signal === 'botBlock' ||
-              signal === 'rateLimit' ||
-              signal === 'nsig' ||
-              signal === 'formatUnavailable');
+            currentAttempt < maxAttempts - 1 &&
+            (isYT
+              ? signal === 'botBlock' ||
+                signal === 'rateLimit' ||
+                signal === 'nsig' ||
+                signal === 'formatUnavailable'
+              : signal === 'botBlock' ||
+                signal === 'rateLimit' ||
+                signal === 'networkError' ||
+                signal === 'formatUnavailable');
 
           if (isRetryable) {
             currentAttempt++;
             const delay = getRetryDelay(currentAttempt - 1, signal);
             console.warn(
-              `[yt-dlp] download attempt ${currentAttempt}/${MAX_RETRY_ATTEMPTS} failed (${signal}), retrying in ${delay}ms`
+              `[yt-dlp] download attempt ${currentAttempt + 1}/${maxAttempts} failed (${signal}), retrying in ${delay}ms`
             );
             setTimeout(tryDownload, delay);
           } else {

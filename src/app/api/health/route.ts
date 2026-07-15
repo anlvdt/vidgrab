@@ -79,12 +79,14 @@ export async function GET() {
     ytdlpVersion: ytdlpVersionValue,
     engines: {
       ytdlp: ytdlpVersionValue !== "unavailable",
+      ytdlpEjs: process.env.YTDLP_JS_RUNTIME !== "off",
       ffmpeg: await binaryVersion(ffmpegBin, ["-version"]),
       python: await binaryVersion(pythonBin, ["--version"]),
       pytubefix: await pytubefixStatus(),
       cobalt: !!process.env.COBALT_API_URL,
     },
     poToken: !!process.env.BGUTIL_POT_BASE_URL,
+    jsRuntime: process.env.YTDLP_JS_RUNTIME || "node",
     cookies: !!process.env.VIDGRAB_COOKIES_PATH,
     proxy: !!process.env.YTDLP_PROXY,
   });

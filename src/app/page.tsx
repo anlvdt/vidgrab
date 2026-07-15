@@ -134,13 +134,18 @@ export default function Home() {
       const params = new URLSearchParams({
         url: targetUrl,
         title: videoInfo?.title || "video",
+        source: currentUrl,
         direct: "true",
       });
+      if (videoInfo?.id) params.set("videoId", videoInfo.id);
+      if (videoInfo?.uploader) params.set("uploader", videoInfo.uploader);
+      const platform = detectPlatform(currentUrl);
+      if (platform) params.set("platform", platform.id);
       if (audioOnly) params.set("audio", "true");
       applyLogoRemovalParams(params, !audioOnly);
       return `/api/download?${params.toString()}`;
     },
-    [videoInfo?.title]
+    [currentUrl, videoInfo?.id, videoInfo?.title, videoInfo?.uploader]
   );
 
   const handleDirectVideoDownload = useCallback(
@@ -212,7 +217,7 @@ export default function Home() {
               <div className="max-w-2xl mx-auto mt-6">
                 <div className="flex flex-wrap gap-3 justify-center">
                   <a
-                    href={videoInfo.directUrl || videoInfo.cobaltUrl}
+                    href={buildDirectDownloadUrl(videoInfo.directUrl || videoInfo.cobaltUrl || "")}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(event) =>
@@ -226,7 +231,7 @@ export default function Home() {
                   </a>
                   {(videoInfo.directAudioUrl || videoInfo.cobaltAudioUrl) && (
                     <a
-                      href={videoInfo.directAudioUrl || videoInfo.cobaltAudioUrl}
+                      href={buildDirectDownloadUrl(videoInfo.directAudioUrl || videoInfo.cobaltAudioUrl || "", true)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={handleDownloadStart}
@@ -247,6 +252,9 @@ export default function Home() {
                   formats={videoInfo.formats}
                   videoUrl={currentUrl}
                   videoTitle={videoInfo.title}
+                  videoId={videoInfo.id}
+                  uploader={videoInfo.uploader}
+                  platform={detectPlatform(currentUrl)?.id}
                   onDownloadStart={handleDownloadStart}
                 />
               </>

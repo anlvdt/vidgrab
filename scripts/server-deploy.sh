@@ -3,6 +3,8 @@
 # Runs on the iNET cPanel host (CloudLinux + Passenger). Downloads a prebuilt
 # Next.js standalone artifact and overlays it onto the live web root, keeping
 # bin / start.sh / tmp untouched, then restarts Passenger.
+# Root URL ownership: https://vidgrab.io.vn is VidGrab only.
+# WC26 must stay under /wc26/index.html#knockout and must never be copied to root.
 #
 # Usage (paste into cPanel Terminal):
 #   curl -fsSL "<raw-url>/scripts/server-deploy.sh" | bash -s "<raw-url>/<artifact>.tar.gz"
@@ -21,6 +23,7 @@ W="$HOME/public_html/vidgrab.io.vn"   # live web root (Passenger app dir)
 S="$HOME/deploy-stage"
 ART_URL="${1:?usage: server-deploy.sh <artifact-raw-url>}"
 ART="$HOME/$(basename "$ART_URL")"
+STAMP="$(date +%Y%m%d%H%M%S)"
 
 echo "==> [1/6] downloading artifact"
 if [ -n "${GITHUB_TOKEN:-}" ]; then
@@ -63,12 +66,53 @@ if [ -d "$S/node_modules" ]; then
 fi
 cp -a "$S/server.js"   "$W/server.js"
 cp -a "$S/package.json" "$W/package.json"
+
+echo "==> preserving WC26 dashboard before static asset swap"
+WC26_BACKUP="$HOME/.vidgrab-wc26-preserve-$STAMP"
+WC26_ROOT_FOUND=0
+WC26_PUBLIC_FOUND=0
+if [ -d "$W/wc26" ]; then
+  mkdir -p "$WC26_BACKUP"
+  cp -a "$W/wc26" "$WC26_BACKUP/root-wc26"
+  WC26_ROOT_FOUND=1
+fi
+if [ -d "$W/public/wc26" ]; then
+  mkdir -p "$WC26_BACKUP"
+  cp -a "$W/public/wc26" "$WC26_BACKUP/public-wc26"
+  WC26_PUBLIC_FOUND=1
+fi
+if [ "$WC26_ROOT_FOUND" -eq 0 ] && [ "$WC26_PUBLIC_FOUND" -eq 0 ]; then
+  rm -rf "$WC26_BACKUP"
+  echo "    no existing wc26 directory found"
+else
+  echo "    snapshot created (root=$WC26_ROOT_FOUND public=$WC26_PUBLIC_FOUND)"
+fi
+
 if [ -d "$S/public" ]; then
   rm -rf "$W/public.new"
   cp -a "$S/public" "$W/public.new"
   rm -rf "$W/public"
   mv "$W/public.new" "$W/public"
 fi
+
+if [ "$WC26_ROOT_FOUND" -eq 1 ]; then
+  rm -rf "$W/wc26"
+  cp -a "$WC26_BACKUP/root-wc26" "$W/wc26"
+fi
+if [ "$WC26_PUBLIC_FOUND" -eq 1 ]; then
+  mkdir -p "$W/public"
+  rm -rf "$W/public/wc26"
+  cp -a "$WC26_BACKUP/public-wc26" "$W/public/wc26"
+fi
+if [ "$WC26_ROOT_FOUND" -eq 1 ] && [ ! -d "$W/wc26" ]; then
+  echo "FATAL: WC26 root directory was not restored" >&2
+  exit 1
+fi
+if [ "$WC26_PUBLIC_FOUND" -eq 1 ] && [ ! -d "$W/public/wc26" ]; then
+  echo "FATAL: WC26 public directory was not restored" >&2
+  exit 1
+fi
+rm -rf "$WC26_BACKUP"
 if [ -d "$S/bin" ]; then
   rm -rf "$W/bin.new"
   cp -a "$S/bin" "$W/bin.new"
@@ -84,6 +128,21 @@ if [ -d "$S/.python" ]; then
 fi
 mkdir -p "$W/scripts"
 cp -a "$S/scripts/." "$W/scripts/" 2>/dev/null || true
+
+echo "==> [4a/6] archiving stale top-level static indexes"
+STALE_DIR="$W/_static-index-backups"
+archived=0
+for entrypoint in index.html index.htm default.html; do
+  if [ -f "$W/$entrypoint" ]; then
+    mkdir -p "$STALE_DIR"
+    mv "$W/$entrypoint" "$STALE_DIR/$entrypoint.$STAMP.bak"
+    echo "    archived $entrypoint -> _static-index-backups/$entrypoint.$STAMP.bak"
+    archived=1
+  fi
+done
+if [ "$archived" -eq 0 ]; then
+  echo "    none found"
+fi
 
 echo "==> [4b/6] preparing optional Python fallback"
 PY_BIN=""

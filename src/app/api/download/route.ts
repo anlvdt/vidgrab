@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
 import type { DownloadFailure, DownloadStream } from "@/lib/ytdlp";
 import { isPytubefixFormat } from "@/lib/pytubefix-format";
-import { sanitizeUrl } from "@/lib/url-sanitizer";
-import { sanitizeFilename } from "@/lib/filename-sanitizer";
+import { parseVideoId, sanitizeUrl } from "@/lib/url-sanitizer";
+import {
+  buildDownloadFilename,
+  contentDisposition,
+} from "@/lib/filename-sanitizer";
+import { detectPlatform } from "@/lib/platforms";
 import { classifyStderr } from "@/lib/po-token";
 import { cobaltDownload, isCobaltAvailable } from "@/lib/cobalt";
 import { parseLogoRemoval } from "@/lib/logo-removal-options";
@@ -30,7 +34,8 @@ function isYouTubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/i.test(url);
 }
 
-function isAllowedDirectMediaHost(url: string): boolean {
+function isAllowedDirectMediaHost(url: string, allowUnlistedHost = false): boolean {
+  if (allowUnlistedHost) return true;
   const hostname = new URL(url).hostname.toLowerCase();
   return DIRECT_MEDIA_HOSTS.some(
     (host) => hostname === host || hostname.endsWith(`.${host}`)
@@ -39,14 +44,15 @@ function isAllowedDirectMediaHost(url: string): boolean {
 
 async function fetchPublicDirectStream(
   inputUrl: string,
-  redirects = 0
+  redirects = 0,
+  options?: { allowUnlistedHost?: boolean }
 ): Promise<DownloadStream> {
   if (redirects > MAX_DIRECT_REDIRECTS) {
     throw new Error("Too many redirects");
   }
 
   const publicUrl = await assertPublicHttpUrl(inputUrl);
-  if (!isAllowedDirectMediaHost(publicUrl)) {
+  if (!isAllowedDirectMediaHost(publicUrl, options?.allowUnlistedHost)) {
     throw new Error("Direct media host is not allowed");
   }
   const res = await fetch(publicUrl, {
@@ -58,7 +64,7 @@ async function fetchPublicDirectStream(
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get("location");
     if (!location) throw new Error("Redirect without location");
-    return fetchPublicDirectStream(new URL(location, publicUrl).toString(), redirects + 1);
+    return fetchPublicDirectStream(new URL(location, publicUrl).toString(), redirects + 1, options);
   }
 
   if (!res.ok || !res.body) {
@@ -158,6 +164,11 @@ export async function GET(req: NextRequest) {
   const audioOnly = searchParams.get("audio") === "true";
   const progressive = searchParams.get("progressive") === "true";
   const title = searchParams.get("title") || "video";
+  const uploader = searchParams.get("uploader") || "";
+  const sourceUrl = searchParams.get("source") || rawUrl || "";
+  const platform = searchParams.get("platform") || detectPlatform(sourceUrl)?.id || "";
+  const videoId = searchParams.get("videoId") || parseVideoId(sourceUrl) || "";
+  const quality = searchParams.get("quality") || (audioOnly ? "Audio" : "");
   const direct = searchParams.get("direct") === "true";
   const logoRemoval = parseLogoRemoval(searchParams);
 
@@ -179,8 +190,15 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "Please provide a valid public URL." }, { status: 400 });
   }
 
-  const safeTitle = sanitizeFilename(title, 100);
   const ext = audioOnly ? "mp3" : "mp4";
+  const filename = buildDownloadFilename({
+    title,
+    extension: ext,
+    platform,
+    uploader,
+    videoId,
+    quality,
+  });
   const ytdlp = await import("@/lib/ytdlp");
 
   // Trigger background yt-dlp update check
@@ -203,7 +221,7 @@ export async function GET(req: NextRequest) {
   const contentType = audioOnly ? "audio/mpeg" : "application/octet-stream";
   const streamHeaders = {
     "Content-Type": contentType,
-    "Content-Disposition": `attachment; filename="${safeTitle}.${ext}"`,
+    "Content-Disposition": contentDisposition(filename),
     "Transfer-Encoding": "chunked",
   };
 
@@ -223,7 +241,12 @@ export async function GET(req: NextRequest) {
 
   if (direct) {
     try {
-      const directStream = await fetchPublicDirectStream(url);
+      // Scraper/CDN hostnames are allowlisted. Cobalt rotates CDN hostnames,
+      // so its already-validated public result may use an unlisted host.
+      // Every hop still passes assertPublicHttpUrl, including redirects.
+      const directStream = await fetchPublicDirectStream(url, 0, {
+        allowUnlistedHost: true,
+      });
       const output = await prepare(directStream);
       return respond(output);
     } catch {
@@ -256,8 +279,9 @@ export async function GET(req: NextRequest) {
       if (cobalt.ok && (cobalt.url || cobalt.audioUrl)) {
         const target = (audioOnly && cobalt.audioUrl) || cobalt.url || cobalt.audioUrl!;
         await assertPublicHttpUrl(target);
-        release();
-        return Response.redirect(target, 302);
+        const directStream = await fetchPublicDirectStream(target, 0, { allowUnlistedHost: true });
+        const output = await prepare(directStream);
+        return respond(output);
       }
     } catch {
       /* fall through */

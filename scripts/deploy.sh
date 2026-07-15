@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # ─── VidGrab MAC-side deploy orchestrator ───
 # One command to ship the current commit to live vidgrab.io.vn.
+# Root URL ownership: https://vidgrab.io.vn is VidGrab only.
+# WC26 must stay under /wc26/index.html#knockout and must never be copied to root.
 #
 #   ./scripts/deploy.sh
 #
@@ -31,6 +33,24 @@ YTDLP_BIN_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 PYTUBEFIX_VERSION="10.9.0"
 HOSTING_PYTHON_VERSION="3.12"
 HOSTING_PYTHON_ABI="cp312"
+
+# The host runtime is pinned to cp312, but the local packaging interpreter may
+# be an older system Python. Pick a local interpreter new enough to install
+# the wheel set used by the artifact instead of blindly invoking python3.
+PACKAGING_PYTHON=""
+for candidate in "${PYTHON_BIN:-}" python3.13 python3.12 python3.11 python3.10 \
+  /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 \
+  /opt/homebrew/bin/python3 /usr/local/bin/python3 /usr/bin/python3; do
+  [ -n "$candidate" ] || continue
+  if ( "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' ) 2>/dev/null; then
+    PACKAGING_PYTHON="$candidate"
+    break
+  fi
+done
+if [ -z "$PACKAGING_PYTHON" ]; then
+  echo "FATAL: Python 3.10+ is required to package pytubefix runtime." >&2
+  exit 1
+fi
 
 # ── guard: clean tracked tree ───────────────────────────────
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -75,7 +95,7 @@ echo "yt-dlp: python3 not found" >&2
 exit 127
 EOF
 chmod 755 "$RUNTIME_DIR/bin/yt-dlp" "$RUNTIME_DIR/bin/yt-dlp.py"
-python3 -m pip install --quiet --disable-pip-version-check \
+"$PACKAGING_PYTHON" -m pip install --quiet --disable-pip-version-check \
   --platform manylinux2014_x86_64 \
   --implementation cp \
   --python-version "$HOSTING_PYTHON_VERSION" \
@@ -133,25 +153,13 @@ git branch -qD "$DEPLOY_BRANCH"
 rm -f "$REPO_ROOT/$ART"
 trap - EXIT   # local state already clean; keep remote branch for the server pull
 
-GH_TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill 2>/dev/null | grep password | cut -d= -f2 || true)
-
-if [ -n "$GH_TOKEN" ]; then
-  SRV_URL="https://api.github.com/repos/${GH_OWNER_REPO}/contents/scripts/server-deploy.sh?ref=${DEPLOY_BRANCH}"
-  ART_URL="https://api.github.com/repos/${GH_OWNER_REPO}/contents/${ART}?ref=${DEPLOY_BRANCH}"
-  cat <<EOF
-
-──────────────────────────────────────────────────────────────
- [4/5] Paste this into the cPanel Terminal (Tools → Terminal):
-
-   export GITHUB_TOKEN="$GH_TOKEN"
-   curl -H "Authorization: token \$GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw" -fsSL "$SRV_URL" | bash -s -- "$ART_URL"
-
-──────────────────────────────────────────────────────────────
-EOF
-else
-  ART_URL="${RAW_BASE}/${DEPLOY_BRANCH}/${ART}"
-  SRV_URL="${RAW_BASE}/${DEPLOY_BRANCH}/scripts/server-deploy.sh"
-  cat <<EOF
+# Never print GitHub credentials into terminal output or chat logs. The
+# repository is deployed through its raw branch URLs; if it is private, set
+# GITHUB_TOKEN manually in cPanel before running the same script with the
+# authenticated API URLs.
+ART_URL="${RAW_BASE}/${DEPLOY_BRANCH}/${ART}"
+SRV_URL="${RAW_BASE}/${DEPLOY_BRANCH}/scripts/server-deploy.sh"
+cat <<EOF
 
 ──────────────────────────────────────────────────────────────
  [4/5] Paste this into the cPanel Terminal (Tools → Terminal):
@@ -160,7 +168,6 @@ else
 
 ──────────────────────────────────────────────────────────────
 EOF
-fi
 
 echo "==> [5/5] Polling $SITE_URL/api/health (up to ~3 min)…"
 NEW_BUILD="$(cat "$STANDALONE/.next/BUILD_ID")"

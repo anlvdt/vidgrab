@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 20;
+const MAX_SOURCE_URL_LENGTH = 4096;
 const TRUST_PROXY_HEADERS = process.env.VIDGRAB_TRUST_PROXY_HEADERS === "true";
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -62,6 +63,9 @@ function isPrivateIpv6(address: string): boolean {
 }
 
 export async function assertPublicHttpUrl(rawUrl: string): Promise<string> {
+  if (typeof rawUrl !== "string" || rawUrl.length > MAX_SOURCE_URL_LENGTH) {
+    throw new Error("URL is too long");
+  }
   const parsed = new URL(rawUrl);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("Only HTTP(S) URLs are supported");
@@ -71,6 +75,7 @@ export async function assertPublicHttpUrl(rawUrl: string): Promise<string> {
   }
 
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+  if (!hostname) throw new Error("URL hostname is missing");
   if (hostname === "localhost" || hostname.endsWith(".local")) {
     throw new Error("Private network URLs are not allowed");
   }

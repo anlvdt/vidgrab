@@ -33,6 +33,9 @@ interface FormatPickerProps {
   formats: Format[];
   videoUrl: string;
   videoTitle: string;
+  videoId?: string;
+  uploader?: string;
+  platform?: string;
   onDownloadStart?: () => void;
 }
 
@@ -55,6 +58,9 @@ export default function FormatPicker({
   formats,
   videoUrl,
   videoTitle,
+  videoId,
+  uploader,
+  platform,
   onDownloadStart,
 }: FormatPickerProps) {
   const [tab, setTab] = useState<FilterTab>("all");
@@ -124,6 +130,10 @@ export default function FormatPicker({
       format: format.formatId,
       title: videoTitle,
     });
+    if (videoId) params.set("videoId", videoId);
+    if (uploader) params.set("uploader", uploader);
+    if (platform) params.set("platform", platform);
+    if (format.quality) params.set("quality", format.quality);
     if (!format.hasVideo) {
       params.set("audio", "true");
     } else if (format.hasAudio) {
@@ -135,11 +145,20 @@ export default function FormatPicker({
   };
 
   const handleBestDownload = () => {
-    triggerDownload(new URLSearchParams({ url: videoUrl, title: videoTitle }));
+    const params = new URLSearchParams({ url: videoUrl, title: videoTitle });
+    if (videoId) params.set("videoId", videoId);
+    if (uploader) params.set("uploader", uploader);
+    if (platform) params.set("platform", platform);
+    triggerDownload(params);
   };
 
   const handleAudioDownload = () => {
-    triggerDownload(new URLSearchParams({ url: videoUrl, title: videoTitle, audio: "true" }));
+    const params = new URLSearchParams({ url: videoUrl, title: videoTitle, audio: "true" });
+    if (videoId) params.set("videoId", videoId);
+    if (uploader) params.set("uploader", uploader);
+    if (platform) params.set("platform", platform);
+    params.set("quality", "Audio");
+    triggerDownload(params);
   };
 
   const tabLabels: Record<FilterTab, string> = {
