@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import {
   Search,
-  Zap,
   List,
   Loader2,
   Clipboard,
@@ -16,6 +15,7 @@ import {
 import ThemeToggle from "./ThemeToggle";
 import LangToggle from "./LangToggle";
 import PlatformBadge from "./PlatformBadge";
+import BrandMark from "./BrandMark";
 import { useI18n } from "@/lib/i18n";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
 
@@ -62,16 +62,14 @@ export default function Hero({ onFetch, loading }: HeroProps) {
   };
 
   return (
-    <section className="relative pb-12 sm:pb-16">
-      <div className="nav-chrome mb-10 sm:mb-14">
+    <section className="relative pb-8 sm:pb-10">
+      <div className="nav-chrome mb-6 sm:mb-8">
         <nav
           className="mx-auto flex min-h-12 w-full max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8"
           aria-label="Primary"
         >
           <div className="flex min-h-11 items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-hover)] to-[var(--accent)] shadow-[0_8px_24px_var(--accent-glow)] ring-1 ring-white/10">
-              <Zap className="h-4 w-4 text-white" aria-hidden />
-            </div>
+            <BrandMark className="h-9 w-9 shrink-0 rounded-[0.65rem] shadow-[0_8px_24px_var(--accent-glow)]" />
             <span className="text-xl font-bold tracking-tight">
               Vid<span className="gradient-text">Grab</span>
             </span>
@@ -90,10 +88,10 @@ export default function Hero({ onFetch, loading }: HeroProps) {
             <span className="truncate">{t.heroOtherSites}</span>
           </div>
 
-          <h1 className="mx-auto mb-4 max-w-[18em] text-balance text-[1.9rem] font-bold leading-[1.12] tracking-[-0.035em] sm:max-w-none sm:text-4xl lg:text-[2.85rem]">
+          <h1 className="mx-auto mb-3 max-w-[18em] text-balance text-[1.75rem] font-bold leading-[1.12] tracking-[-0.035em] sm:max-w-none sm:text-3xl lg:text-[2.5rem]">
             {t.heroTitle}
           </h1>
-          <p className="mx-auto mb-8 max-w-md text-pretty text-[0.95rem] leading-relaxed text-[var(--text-secondary)] sm:text-base">
+          <p className="mx-auto mb-6 max-w-md text-pretty text-sm leading-relaxed text-[var(--text-secondary)] sm:text-[0.95rem]">
             {t.heroSubtitle}
           </p>
 
@@ -217,7 +215,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
             </div>
           </form>
 
-          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <ul className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
             {[
               { icon: ShieldCheck, label: t.heroTrustPrivate },
               { icon: History, label: t.heroTrustHistory },

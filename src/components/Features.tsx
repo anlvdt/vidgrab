@@ -20,36 +20,32 @@ export default function Features() {
   ];
 
   return (
-    <section className="relative z-10 py-[var(--space-8)] sm:py-[var(--space-10)]">
+    <section className="relative z-10 py-6 sm:py-7">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-6xl">
-          <div className="mb-8 text-center">
-            <p className="section-kicker">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="mb-4 text-center">
+            <p className="section-kicker mb-2">
               {locale === "vi" ? "Tính năng" : "Features"}
             </p>
-            <h2 className="mb-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="text-lg font-bold tracking-tight sm:text-xl">
               {t.featuresTitle}
             </h2>
-            <p className="mx-auto max-w-[var(--measure-prose)] text-sm text-[var(--text-secondary)] sm:text-base">
-              {t.featuresSubtitle}
-            </p>
           </div>
 
-          <div className="grid auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 sm:gap-4">
+          {/* One compact row — title only, desc as title tooltip */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="feature-card group flex h-full min-h-[11.5rem] flex-col rounded-2xl p-5 sm:min-h-[12.5rem] sm:p-6"
+                title={f.desc}
+                className="feature-card flex flex-col items-center gap-2 rounded-xl px-2.5 py-3 text-center sm:py-3.5"
               >
-                <div className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent-light)] ring-1 ring-[color-mix(in_srgb,var(--accent)_22%,transparent)] transition-all duration-200 group-hover:bg-[var(--accent)] group-hover:text-white group-hover:ring-[var(--accent)] group-hover:shadow-[0_8px_20px_var(--accent-glow)]">
-                  <f.icon className="h-5 w-5" aria-hidden />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent-light)]">
+                  <f.icon className="h-4 w-4" aria-hidden />
                 </div>
-                <h3 className="mb-2 text-sm font-semibold tracking-tight sm:text-base">
+                <h3 className="text-[11px] font-semibold leading-snug tracking-tight sm:text-xs">
                   {f.title}
                 </h3>
-                <p className="mt-auto text-xs leading-relaxed text-[var(--text-secondary)] sm:text-sm">
-                  {f.desc}
-                </p>
               </div>
             ))}
           </div>

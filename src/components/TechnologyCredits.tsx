@@ -1,46 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, GitBranch, Scale } from "lucide-react";
+import { ExternalLink, Scale } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const technologies = [
-  {
-    name: "yt-dlp",
-    roleEn: "Primary media metadata and stream extraction engine",
-    roleVi: "Công cụ chính để đọc metadata và trích xuất luồng media",
-    url: "https://github.com/yt-dlp/yt-dlp",
-  },
-  {
-    name: "FFmpeg",
-    roleEn: "Audio conversion, stream merging and MP4 normalization",
-    roleVi: "Chuyển đổi âm thanh, ghép luồng và chuẩn hóa MP4",
-    url: "https://ffmpeg.org/",
-  },
-  {
-    name: "pytubefix",
-    roleEn: "Secondary YouTube extraction path when the primary engine fails",
-    roleVi: "Đường trích xuất YouTube dự phòng khi engine chính thất bại",
-    url: "https://github.com/JuanBindez/pytubefix",
-  },
-  {
-    name: "Cobalt",
-    roleEn: "Optional self-hosted fallback for selected public links",
-    roleVi: "Fallback self-host tùy chọn cho một số liên kết công khai",
-    url: "https://github.com/imputnet/cobalt",
-  },
-  {
-    name: "curl_cffi",
-    roleEn: "Optional browser-like TLS requests for difficult public sources",
-    roleVi: "Yêu cầu TLS mô phỏng trình duyệt cho nguồn công khai khó truy cập",
-    url: "https://github.com/lexiforest/curl_cffi",
-  },
-  {
-    name: "SponsorBlock",
-    roleEn: "Optional community segment markers used through yt-dlp",
-    roleVi: "Dữ liệu phân đoạn cộng đồng tùy chọn được dùng thông qua yt-dlp",
-    url: "https://sponsor.ajay.app/",
-  },
+  { name: "yt-dlp", url: "https://github.com/yt-dlp/yt-dlp" },
+  { name: "FFmpeg", url: "https://ffmpeg.org/" },
+  { name: "pytubefix", url: "https://github.com/JuanBindez/pytubefix" },
+  { name: "Cobalt", url: "https://github.com/imputnet/cobalt" },
 ] as const;
 
 export default function TechnologyCredits() {
@@ -49,53 +17,46 @@ export default function TechnologyCredits() {
 
   return (
     <section
-      className="relative z-10 border-y border-[var(--border)] bg-[var(--section-bg)] py-[var(--space-8)] sm:py-[var(--space-10)]"
+      className="relative z-10 border-y border-[var(--border)] bg-[var(--section-bg)] py-5 sm:py-6"
       aria-labelledby="technology-title"
     >
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="section-kicker">
-              {vi ? "Công khai cách vận hành" : "How it works, in the open"}
-            </p>
-            <h2 id="technology-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
-              {vi ? "Công nghệ mã nguồn mở" : "Open-source technology"}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
-            {vi
-              ? "VidGrab dùng yt-dlp, FFmpeg và các fallback chuyên biệt. Chỉ xử lý URL bạn gửi, không vượt DRM hoặc quyền riêng tư."
-              : "VidGrab uses yt-dlp, FFmpeg and focused fallbacks. It only processes URLs you submit and does not bypass DRM or privacy controls."}
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
-            <Link href="/transparency" className="btn-hero px-4 text-sm">
-              <Scale className="h-4 w-4" aria-hidden />
-              {vi ? "Xem chính sách minh bạch" : "Read our transparency policy"}
-            </Link>
-            <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
-              <GitBranch className="h-4 w-4" aria-hidden />
-              {vi ? "Mã nguồn VidGrab" : "VidGrab source"}
-            </a>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--border)] pt-5">
-          {technologies.map((technology) => (
-            <a
-              key={technology.name}
-              href={technology.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={vi ? technology.roleVi : technology.roleEn}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card-solid)] px-3 text-xs font-medium text-[var(--text-secondary)] shadow-[0_1px_2px_color-mix(in_srgb,var(--glass-shadow)_40%,transparent)] transition-all hover:border-[var(--accent)] hover:text-[var(--text-primary)] hover:shadow-[0_6px_16px_color-mix(in_srgb,var(--glass-shadow)_55%,transparent)]"
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div className="min-w-0">
+            <h2
+              id="technology-title"
+              className="text-sm font-semibold tracking-tight sm:text-base"
             >
-              {technology.name}
-              <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
-            </a>
-          ))}
+              {vi ? "Mã nguồn mở · minh bạch" : "Open source · transparent"}
+            </h2>
+            <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+              {vi
+                ? "yt-dlp, FFmpeg và fallback — chỉ xử lý URL bạn gửi."
+                : "yt-dlp, FFmpeg and fallbacks — only URLs you submit."}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+              {technologies.map((tech) => (
+                <a
+                  key={tech.name}
+                  href={tech.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-card-solid)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
+                >
+                  {tech.name}
+                  <ExternalLink className="h-2.5 w-2.5 opacity-50" aria-hidden />
+                </a>
+              ))}
+            </div>
+          </div>
+          <Link
+            href="/transparency"
+            className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--accent-soft)] px-3 text-xs font-semibold text-[var(--accent-light)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+          >
+            <Scale className="h-3.5 w-3.5" aria-hidden />
+            {vi ? "Minh bạch" : "Transparency"}
+          </Link>
         </div>
-      </div>
       </div>
     </section>
   );

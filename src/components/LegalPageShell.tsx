@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import AuroraBackground from "@/components/AuroraBackground";
 import ThemeToggle from "@/components/ThemeToggle";
 import LangToggle from "@/components/LangToggle";
-import { Zap } from "lucide-react";
+import BrandMark from "@/components/BrandMark";
 
 interface LegalPageShellProps {
   icon: LucideIcon;
@@ -41,9 +41,7 @@ export default function LegalPageShell({
               href="/"
               className="flex min-h-11 items-center gap-2.5 rounded-xl pr-2"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-hover)] to-[var(--accent)] shadow-[0_8px_24px_var(--accent-glow)] ring-1 ring-white/10">
-                <Zap className="h-4 w-4 text-white" aria-hidden />
-              </span>
+              <BrandMark className="h-9 w-9 shrink-0 rounded-[0.65rem] shadow-[0_8px_24px_var(--accent-glow)]" />
               <span className="text-lg font-bold tracking-tight">
                 Vid<span className="gradient-text">Grab</span>
               </span>

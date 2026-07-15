@@ -1,33 +1,30 @@
 "use client";
 
-import { Zap, Heart, Shield } from "lucide-react";
+import { Heart, Shield } from "lucide-react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import BrandMark from "./BrandMark";
 
 export default function Footer() {
   const { t } = useI18n();
 
   return (
-    <footer className="relative z-10 border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-secondary)_55%,transparent)] pb-8 pt-10">
+    <footer className="relative z-10 border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-secondary)_55%,transparent)] pb-6 pt-6">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-6xl">
-          <div className="mb-8 flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card-solid)]/70 p-4 shadow-[0_1px_2px_var(--glass-shadow)] sm:p-5">
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--warning)_14%,transparent)]">
-              <Shield
-                className="h-3.5 w-3.5 text-[var(--warning)]"
-                aria-hidden
-              />
-            </span>
-            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card-solid)]/70 px-3 py-2.5">
+            <Shield
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--warning)]"
+              aria-hidden
+            />
+            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
               {t.footerDisclaimer}
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-3">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row sm:gap-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--accent-hover)] to-[var(--accent)] ring-1 ring-white/10">
-                <Zap className="h-3.5 w-3.5 text-white" aria-hidden />
-              </div>
+              <BrandMark className="h-8 w-8 shrink-0 rounded-lg" />
               <span className="text-sm font-semibold tracking-tight">
                 Vid<span className="gradient-text">Grab</span>
               </span>
