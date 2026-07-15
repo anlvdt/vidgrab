@@ -17,7 +17,7 @@ export default function Footer() {
               className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--warning)]"
               aria-hidden
             />
-            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
               {t.footerDisclaimer}
             </p>
           </div>
@@ -31,7 +31,7 @@ export default function Footer() {
             </div>
 
             <nav
-              className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs text-[var(--text-muted)]"
+              className="flex flex-wrap items-center justify-center gap-x-0.5 gap-y-1 text-sm text-[var(--text-muted)]"
               aria-label="Legal"
             >
               {[
@@ -42,7 +42,7 @@ export default function Footer() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex min-h-9 items-center rounded-lg px-2.5 whitespace-nowrap transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 py-2.5 whitespace-nowrap transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
                 >
                   {item.label}
                 </Link>
@@ -51,7 +51,7 @@ export default function Footer() {
                 href="https://github.com/anlvdt/vidgrab"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center rounded-lg px-2.5 whitespace-nowrap transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
+                className="inline-flex min-h-11 items-center rounded-lg px-3 py-2.5 whitespace-nowrap transition-colors hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
               >
                 {t.footerSource}
               </a>

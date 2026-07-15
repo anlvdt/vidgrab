@@ -17,7 +17,7 @@ export default function LangToggle() {
           key={l.code}
           type="button"
           onClick={() => setLocale(l.code)}
-          className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg px-2.5 text-[11px] font-semibold leading-none transition-colors ${
+          className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg px-2.5 text-xs font-semibold leading-none transition-colors ${
             locale === l.code
               ? "bg-[var(--accent-soft)] text-[var(--accent-light)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_28%,transparent)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

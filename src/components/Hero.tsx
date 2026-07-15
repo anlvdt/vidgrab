@@ -83,15 +83,15 @@ export default function Hero({ onFetch, loading }: HeroProps) {
 
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto w-full max-w-3xl text-center">
-          <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-card-solid)]/90 px-3.5 py-1.5 text-xs font-medium text-[var(--accent-light)] shadow-[0_1px_2px_var(--glass-shadow),inset_0_1px_0_rgba(255,255,255,0.06)]">
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-card-solid)]/90 px-3.5 py-1.5 text-sm font-medium text-[var(--accent-light)] shadow-[0_1px_2px_var(--glass-shadow),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
             <span className="truncate">{t.heroOtherSites}</span>
           </div>
 
-          <h1 className="mx-auto mb-3 max-w-[18em] text-balance text-[1.75rem] font-bold leading-[1.12] tracking-[-0.035em] sm:max-w-none sm:text-3xl lg:text-[2.5rem]">
+          <h1 className="mx-auto mb-3 max-w-[18em] text-balance text-[1.85rem] font-bold leading-[1.12] tracking-[-0.035em] sm:max-w-none sm:text-3xl lg:text-[2.6rem]">
             {t.heroTitle}
           </h1>
-          <p className="mx-auto mb-6 max-w-md text-pretty text-sm leading-relaxed text-[var(--text-secondary)] sm:text-[0.95rem]">
+          <p className="mx-auto mb-6 max-w-lg text-pretty text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
             {t.heroSubtitle}
           </p>
 
@@ -112,7 +112,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
                 invalidUrl ? "is-invalid" : ""
               } ${pasted && !invalidUrl ? "is-pasted" : ""}`}
             >
-              <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-2 sm:gap-3 sm:px-0">
+              <div className="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 px-2 py-1.5 sm:min-h-12 sm:gap-3 sm:px-0 sm:py-1">
                 <Search
                   className="h-5 w-5 shrink-0 text-[var(--accent-light)]"
                   aria-hidden
@@ -131,7 +131,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
                     if (pasted) setPasted(false);
                   }}
                   placeholder={t.heroPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent py-2.5 text-base leading-normal text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
                   aria-label={t.heroPlaceholder}
                   aria-invalid={invalidUrl}
                   aria-describedby="url-help"
@@ -139,7 +139,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
                 <button
                   type="button"
                   onClick={handleSmartPaste}
-                  className={`paste-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
+                  className={`paste-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                     pasted
                       ? "is-success"
                       : "text-[var(--text-secondary)] hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"
@@ -176,7 +176,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
 
             <p
               id="url-help"
-              className={`mt-2.5 text-left text-xs sm:text-center ${
+              className={`mt-2.5 text-left text-sm sm:text-center ${
                 invalidUrl
                   ? "font-medium text-[var(--danger)]"
                   : pasted
@@ -197,7 +197,7 @@ export default function Hero({ onFetch, loading }: HeroProps) {
                 type="button"
                 onClick={() => setPlaylistMode(!playlistMode)}
                 aria-pressed={playlistMode}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
                   playlistMode
                     ? "bg-[var(--accent-soft)] text-[var(--accent-light)] ring-1 ring-[var(--accent)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--section-bg)] hover:text-[var(--text-primary)]"

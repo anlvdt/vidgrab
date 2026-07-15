@@ -116,7 +116,7 @@ export default function VideoPreview({
           alt={title || "Preview"}
           className="aspect-video w-full object-cover"
         />
-        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+        <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
           <Film className="h-3 w-3" aria-hidden />
           {locale === "vi" ? "Ảnh xem trước" : "Preview image"}
         </span>

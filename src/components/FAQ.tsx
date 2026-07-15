@@ -27,7 +27,7 @@ export default function FAQ() {
         <div className="mx-auto w-full max-w-3xl">
           <div className="mb-3 text-center">
             <p className="section-kicker mb-2">FAQ</p>
-            <h2 className="text-lg font-bold tracking-tight sm:text-xl">
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
               {t.faqTitle}
             </h2>
           </div>
@@ -52,7 +52,7 @@ export default function FAQ() {
                     aria-controls={`faq-panel-${i}`}
                     id={`faq-button-${i}`}
                   >
-                    <span className="pr-2 text-xs font-medium sm:text-sm">
+                    <span className="pr-2 text-sm font-medium sm:text-base">
                       {faq.q}
                     </span>
                     <ChevronDown
@@ -68,7 +68,7 @@ export default function FAQ() {
                     aria-labelledby={`faq-button-${i}`}
                     hidden={!isOpen}
                   >
-                    <div className="border-t border-[var(--border)] px-3.5 pb-3 pt-2 text-xs leading-relaxed text-[var(--text-secondary)] sm:px-4 sm:text-sm">
+                    <div className="border-t border-[var(--border)] px-3.5 pb-3 pt-2 text-sm leading-relaxed text-[var(--text-secondary)] sm:px-4 sm:text-base">
                       {faq.a}
                     </div>
                   </div>
@@ -76,7 +76,7 @@ export default function FAQ() {
               );
             })}
           </div>
-          <p className="mt-3 text-center text-[11px] text-[var(--text-muted)]">
+          <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
             {locale === "vi"
               ? "Còn câu hỏi? Mở issue trên GitHub."
               : "More questions? Open a GitHub issue."}

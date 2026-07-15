@@ -142,7 +142,7 @@ export default function DownloadHistory({ onReopen }: DownloadHistoryProps) {
                 <Clock className="h-3.5 w-3.5 text-[var(--accent-light)]" aria-hidden />
               </span>
               {t.historyTitle}
-              <span className="rounded-full bg-[var(--section-bg)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-muted)]">
+              <span className="rounded-full bg-[var(--section-bg)] px-2 py-0.5 text-xs font-medium tabular-nums text-[var(--text-muted)]">
                 {history.length}
               </span>
             </h3>
@@ -188,7 +188,7 @@ export default function DownloadHistory({ onReopen }: DownloadHistoryProps) {
                     <p className="truncate text-xs font-medium sm:text-sm">
                       {entry.title}
                     </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-[var(--text-muted)]">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-[var(--text-muted)]">
                       {platform && (
                         <span className="inline-flex items-center gap-1">
                           <PIcon size={11} style={{ color: platform.color }} aria-hidden />
@@ -250,7 +250,7 @@ export default function DownloadHistory({ onReopen }: DownloadHistoryProps) {
             </button>
           )}
 
-          <p className="mt-2 flex items-center justify-center gap-1 text-[10px] text-[var(--text-muted)]">
+          <p className="mt-2 flex items-center justify-center gap-1 text-xs text-[var(--text-muted)]">
             <HardDrive className="h-3 w-3" aria-hidden />
             {t.historyPrivacyNote}
           </p>

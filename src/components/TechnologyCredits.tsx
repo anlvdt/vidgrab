@@ -41,7 +41,7 @@ export default function TechnologyCredits() {
                   href={tech.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-card-solid)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
+                  className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-card-solid)] px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text-primary)]"
                 >
                   {tech.name}
                   <ExternalLink className="h-2.5 w-2.5 opacity-50" aria-hidden />

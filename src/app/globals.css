@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/*
+ * Type scale — slightly larger than Tailwind defaults for VI UI readability.
+ * Values are rem so they track html font-size.
+ */
+@theme {
+  --text-xs: 0.8125rem; /* 13px @16 → ~14px @17 */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem; /* 15px @16 */
+  --text-sm--line-height: 1.5;
+  --text-base: 1.0625rem; /* 17px @16 */
+  --text-base--line-height: 1.55;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.2;
+}
+
 /* ═══════════════════════════════════════════
    THEME VARIABLES — DARK
    ═══════════════════════════════════════════ */
@@ -162,6 +183,8 @@
 
 html {
   overflow-x: clip;
+  /* 17px root — body + rem utilities read larger without crushing layout */
+  font-size: 106.25%;
 }
 
 body {
@@ -170,8 +193,11 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   transition: background 0.5s ease, color 0.3s ease;
   overflow-x: clip;
+  font-size: 1rem;
   /* WCAG-friendly body leading */
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -248,9 +274,9 @@ input:focus-visible,
   align-items: center;
   gap: 0.45rem;
   margin-bottom: 0.65rem;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-light);
 }
@@ -365,7 +391,7 @@ input:focus-visible,
   border-radius: 0.75rem;
   background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
   color: #fff;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   padding: 0.75rem 1.5rem;
   box-shadow:
@@ -403,7 +429,7 @@ input:focus-visible,
   border: 1px solid var(--border);
   background: var(--bg-card-solid);
   color: var(--text-primary);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   padding: 0.75rem 1.25rem;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
@@ -439,8 +465,8 @@ input:focus-visible,
   align-items: center;
   gap: 0.3rem;
   border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.625rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   background: color-mix(in srgb, currentColor 12%, transparent);
@@ -454,8 +480,8 @@ input:focus-visible,
   border-radius: 999px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-card-solid) 88%, transparent);
-  padding: 0.4rem 0.8rem;
-  font-size: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--glass-shadow) 40%, transparent);
   transition: border-color 0.15s ease, color 0.15s ease;

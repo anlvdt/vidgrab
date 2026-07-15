@@ -50,6 +50,27 @@ function parseError(stderr: string): string {
   return "Failed to fetch video info.";
 }
 
+/** Map user-facing fetch failures to client error codes (avoid noisy 500). */
+function statusForInfoError(message: string, stderr = ""): number {
+  const signal = classifyStderr(stderr);
+  if (signal === "rateLimit" || /rate limited|429/i.test(message)) return 429;
+  if (signal === "botBlock" || signal === "private" || /login|sign.?in|cookie|authentication|private|restricted/i.test(message))
+    return 403;
+  if (signal === "geoRestricted" || /region|geo/i.test(message)) return 403;
+  if (
+    signal === "notFound" ||
+    signal === "formatUnavailable" ||
+    /not found|deleted|no downloadable|not supported|invalid|could not download/i.test(message)
+  ) {
+    return 404;
+  }
+  if (signal === "networkError" || /network error/i.test(message)) return 502;
+  if (/yt-dlp not found|unexpected/i.test(message)) return 500;
+  // Signature / extraction retries that exhausted all backends — still a client-visible failure
+  if (signal === "nsig" || /signature|extraction failed|failed to fetch/i.test(message)) return 422;
+  return 422;
+}
+
 async function publicDirectUrl(value?: string): Promise<string> {
   if (!value) return "";
   return assertPublicHttpUrl(value);
@@ -142,13 +163,12 @@ export async function POST(req: NextRequest) {
         /login|sign[- ]?in|cookie|authenticat|empty media response|guest token|rate.?limit reached/i.test(
           ytStderr
         );
+      const scrapableError = needsAuth
+        ? "This platform now requires sign-in to download. Add your account cookies in Settings, then try again."
+        : "Could not download from this platform. The video may be private, region-locked, or the link is invalid.";
       return NextResponse.json(
-        {
-          error: needsAuth
-            ? "This platform now requires sign-in to download. Add your account cookies in Settings, then try again."
-            : "Could not download from this platform. The video may be private, region-locked, or the link is invalid.",
-        },
-        { status: needsAuth ? 401 : 500 }
+        { error: scrapableError },
+        { status: needsAuth ? 401 : statusForInfoError(scrapableError, ytStderr) }
       );
     }
 
@@ -218,9 +238,10 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const message = parseError(stderr);
       return NextResponse.json(
-        { error: parseError(stderr) },
-        { status: 500 }
+        { error: message },
+        { status: statusForInfoError(message, stderr) }
       );
     }
   } catch (error: unknown) {

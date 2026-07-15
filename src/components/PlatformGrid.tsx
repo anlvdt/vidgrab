@@ -15,10 +15,10 @@ export default function PlatformGrid() {
           <p className="section-kicker mb-2">
             {locale === "vi" ? "Nền tảng" : "Platforms"}
           </p>
-          <h2 className="mb-1 text-lg font-bold tracking-tight sm:text-xl">
+          <h2 className="mb-1 text-xl font-bold tracking-tight sm:text-2xl">
             {t.platformTitle}
           </h2>
-          <p className="mx-auto mb-4 max-w-lg text-xs text-[var(--text-secondary)] sm:text-sm">
+          <p className="mx-auto mb-4 max-w-lg text-sm text-[var(--text-secondary)] sm:text-base">
             {t.platformSubtitle}
           </p>
 
@@ -29,7 +29,7 @@ export default function PlatformGrid() {
               return (
                 <li key={p.id}>
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card-solid)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] sm:text-xs"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card-solid)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)]"
                     title={
                       p.reliability === "strong"
                         ? t.platformStrong
@@ -46,7 +46,7 @@ export default function PlatformGrid() {
             })}
           </ul>
 
-          <p className="mt-3 text-[11px] text-[var(--text-muted)]">
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
             <Globe className="mr-1 inline h-3 w-3 text-[var(--accent-light)]" aria-hidden />
             {t.platformMore}
           </p>

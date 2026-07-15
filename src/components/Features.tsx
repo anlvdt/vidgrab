@@ -27,7 +27,7 @@ export default function Features() {
             <p className="section-kicker mb-2">
               {locale === "vi" ? "Tính năng" : "Features"}
             </p>
-            <h2 className="text-lg font-bold tracking-tight sm:text-xl">
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
               {t.featuresTitle}
             </h2>
           </div>
@@ -43,7 +43,7 @@ export default function Features() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent-light)]">
                   <f.icon className="h-4 w-4" aria-hidden />
                 </div>
-                <h3 className="text-[11px] font-semibold leading-snug tracking-tight sm:text-xs">
+                <h3 className="text-sm font-semibold leading-snug tracking-tight sm:text-base">
                   {f.title}
                 </h3>
               </div>

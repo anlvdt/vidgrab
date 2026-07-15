@@ -83,10 +83,12 @@ Layout rules only change gutters and optional column counts — **max content wi
 
 | Role | Guidance |
 |------|----------|
-| Body | `line-height` **1.5–1.6** (WCAG-friendly); `letter-spacing` slight negative only on display |
+| Root | `html { font-size: 106.25% }` ≈ **17px** (VI body reads small at default 16px) |
+| Scale | Tailwind steps bumped in `globals.css` `@theme`: **xs 0.8125 / sm 0.9375 / base 1.0625 rem** |
+| Body | `line-height` **1.55–1.6** (WCAG-friendly); `letter-spacing` slight negative only on display |
 | Display / H1 | Clamp size; prefer **≤ ~2.75rem** on large screens for VI headlines (longer than EN) |
 | Prose | `max-width: var(--measure-prose)` (65ch) |
-| UI labels | Single-line where possible; no wrap on primary CTAs / nav actions |
+| UI labels | Prefer `text-xs`+ (not raw `11px`); single-line on primary CTAs / nav |
 
 Default language: **`vi`** (see `src/lib/i18n.tsx`).
 

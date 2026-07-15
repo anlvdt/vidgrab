@@ -111,7 +111,7 @@ export default function SettingsPanel() {
                   <h3 id="settings-title" className="text-base font-bold tracking-tight sm:text-lg">
                     {vi ? "Cài đặt tải xuống" : "Download settings"}
                   </h3>
-                  <p className="text-[11px] text-[var(--text-muted)]">
+                  <p className="text-xs text-[var(--text-muted)]">
                     {vi ? "Áp dụng cho lần tải tiếp theo" : "Applies to your next download"}
                   </p>
                 </div>
