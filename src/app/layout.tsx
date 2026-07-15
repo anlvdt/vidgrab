@@ -36,10 +36,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#06060e" },
-    { media: "(prefers-color-scheme: light)", color: "#f8f7ff" },
-  ],
+  themeColor: "#f8f7ff",
 };
 
 export default function RootLayout({
@@ -58,7 +55,7 @@ export default function RootLayout({
             __html: `
               (function(){
                 var t=localStorage.getItem('vidgrab-theme');
-                if(!t)t=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
+                if(t!=='dark'&&t!=='light')t='light';
                 document.documentElement.setAttribute('data-theme',t);
               })();
             `,

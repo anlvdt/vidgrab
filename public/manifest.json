@@ -4,8 +4,8 @@
   "description": "Phân tích liên kết video công khai và chọn MP4, MP3 hoặc chất lượng tải xuống phù hợp.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#06060e",
-  "theme_color": "#7c6cf0",
+  "background_color": "#f8f7ff",
+  "theme_color": "#f8f7ff",
   "orientation": "any",
   "categories": ["utilities", "entertainment"],
   "icons": [

@@ -16,7 +16,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "dark",
+  theme: "light",
   toggle: () => {},
 });
 
@@ -25,22 +25,19 @@ const THEME_EVENT = "vidgrab-theme-change";
 function themeSnapshot(): Theme {
   const stored = localStorage.getItem("vidgrab-theme");
   if (stored === "dark" || stored === "light") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light";
 }
 
 function serverThemeSnapshot(): Theme {
-  return "dark";
+  return "light";
 }
 
 function subscribeTheme(onStoreChange: () => void): () => void {
-  const media = window.matchMedia("(prefers-color-scheme: light)");
   window.addEventListener("storage", onStoreChange);
   window.addEventListener(THEME_EVENT, onStoreChange);
-  media.addEventListener("change", onStoreChange);
   return () => {
     window.removeEventListener("storage", onStoreChange);
     window.removeEventListener(THEME_EVENT, onStoreChange);
-    media.removeEventListener("change", onStoreChange);
   };
 }
 
