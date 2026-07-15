@@ -319,6 +319,18 @@ input:focus-visible,
     inset 0 1px 0 var(--surface-inset);
 }
 
+/*
+ * Single focus chrome: shell already draws the ring via :focus-within.
+ * Inner input/button outlines stacked a second rectangular frame (see audit).
+ */
+.download-shell input:focus,
+.download-shell input:focus-visible,
+.download-shell button:focus,
+.download-shell button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .download-shell.is-invalid {
   border-color: var(--danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 16%, transparent);
