@@ -27,7 +27,7 @@ export default function Features() {
     <section className="py-12 sm:py-20 px-4 relative z-10">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
-          {t.featuresTitle} <span className="gradient-text">VidGrab</span>?
+          <span className="gradient-text">{t.featuresTitle}</span>
         </h2>
         <p className="text-[var(--text-secondary)] text-center mb-8 sm:mb-12 max-w-lg mx-auto text-sm sm:text-base">
           {t.featuresSubtitle}

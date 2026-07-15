@@ -1,6 +1,7 @@
 "use client";
 
 import { Zap, Heart, Shield } from "lucide-react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 
 export default function Footer() {
@@ -26,12 +27,18 @@ export default function Footer() {
             <span className="font-semibold text-sm">VidGrab</span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-            <a href="/terms" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-[var(--text-muted)]">
+            <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
               {t.footerTerms}
-            </a>
-            <a href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
+            </Link>
+            <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
               {t.footerPrivacy}
+            </Link>
+            <Link href="/transparency" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
+              {t.footerTransparency}
+            </Link>
+            <a href="https://github.com/anlvdt/vidgrab" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--text-secondary)] transition-colors min-h-0">
+              {t.footerSource}
             </a>
           </div>
 

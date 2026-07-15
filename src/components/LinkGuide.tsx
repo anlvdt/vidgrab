@@ -86,11 +86,14 @@ export default function LinkGuide() {
         </p>
 
         {/* Platform tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
+        <div className="flex flex-wrap justify-center gap-2 mb-8" role="tablist" aria-label={t.guideTitle}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActive(tab.id)}
+              role="tab"
+              aria-label={tab.label}
+              aria-selected={active === tab.id}
               className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                 active === tab.id
                   ? "text-white shadow-lg scale-[1.02]"

@@ -49,6 +49,19 @@ async function pytubefixStatus(): Promise<string> {
   }
 }
 
+async function curlCffiStatus(): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync(
+      resolvePythonBin(),
+      ["-c", "import curl_cffi; print(getattr(curl_cffi, '__version__', 'available'))"],
+      { env: pythonEnv(), timeout: 5000 }
+    );
+    return stdout.trim() || "available";
+  } catch {
+    return "unavailable";
+  }
+}
+
 function getBuildId(): string {
   try {
     return fs.readFileSync(path.join(process.cwd(), ".next/BUILD_ID"), "utf8").trim();
@@ -83,10 +96,12 @@ export async function GET() {
       ffmpeg: await binaryVersion(ffmpegBin, ["-version"]),
       python: await binaryVersion(pythonBin, ["--version"]),
       pytubefix: await pytubefixStatus(),
+      curlCffi: await curlCffiStatus(),
       cobalt: !!process.env.COBALT_API_URL,
     },
     poToken: !!process.env.BGUTIL_POT_BASE_URL,
     jsRuntime: process.env.YTDLP_JS_RUNTIME || "node",
+    impersonation: process.env.YTDLP_IMPERSONATE || "chrome",
     cookies: !!process.env.VIDGRAB_COOKIES_PATH,
     proxy: !!process.env.YTDLP_PROXY,
   });

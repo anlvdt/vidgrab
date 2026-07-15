@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle, Eraser, Settings, Shield, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -35,8 +35,24 @@ export default function SettingsPanel() {
       : "top-right";
   });
   const [saved, setSaved] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { locale } = useI18n();
   const vi = locale === "vi";
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   const saveSponsorBlock = (mode: string) => {
     setSponsorBlock(mode);
@@ -64,14 +80,19 @@ export default function SettingsPanel() {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-secondary)] text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-        aria-label="Settings"
+        aria-label={vi ? "Mở cài đặt tải xuống" : "Open download settings"}
       >
         <Settings className="w-5 h-5" />
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+            onClick={() => setOpen(false)}
+            aria-label={vi ? "Đóng cài đặt" : "Close settings"}
+          />
           <div
             className="relative w-full max-w-lg mx-4 mb-4 sm:mb-0 glass-card rounded-2xl p-5 sm:p-6"
             role="dialog"
@@ -83,7 +104,12 @@ export default function SettingsPanel() {
                 <Settings className="w-5 h-5 text-[var(--accent-light)]" />
                 {vi ? "Cài Đặt" : "Settings"}
               </h3>
-              <button onClick={() => setOpen(false)} className="p-2 rounded-lg hover:bg-[var(--glass-bg)]" aria-label="Close">
+              <button
+                ref={closeButtonRef}
+                onClick={() => setOpen(false)}
+                className="p-2 rounded-lg hover:bg-[var(--glass-bg)]"
+                aria-label={vi ? "Đóng" : "Close"}
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>

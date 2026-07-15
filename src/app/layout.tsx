@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { I18nProvider } from "@/lib/i18n";
+import { adsenseAccount } from "@/lib/adsense";
 import "./globals.css";
 
+const validAdsenseAccount = adsenseAccount();
+
 export const metadata: Metadata = {
-  title: "VidGrab — Public Video Downloader for Popular Platforms",
+  title: "VidGrab — Tải video công khai theo chất lượng bạn chọn",
   description:
-    "Free downloader for public YouTube, TikTok, Facebook, Vimeo and yt-dlp compatible links. Some platforms such as Instagram and X may require cookies.",
+    "Phân tích liên kết video công khai và tải MP4, MP3 hoặc chất lượng cụ thể từ các nền tảng phổ biến. Một số nguồn có thể cần cookie hoặc giới hạn theo khu vực.",
   keywords: [
     "video downloader",
     "youtube downloader",
@@ -24,6 +27,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "VidGrab",
   },
+  ...(validAdsenseAccount
+    ? { other: { "google-adsense-account": validAdsenseAccount } }
+    : {}),
 };
 
 export const viewport: Viewport = {

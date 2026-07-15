@@ -42,7 +42,8 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Quảng cáo</h2>
-                <p>VidGrab hiện không hiển thị quảng cáo và không tải script quảng cáo của bên thứ ba.</p>
+                <p>VidGrab hiện không hiển thị quảng cáo và không tải script quảng cáo của bên thứ ba. Nếu quảng cáo được bật sau khi nhà cung cấp phê duyệt, chính sách này sẽ được cập nhật trước khi script quảng cáo hoạt động.</p>
+                <p className="mt-2">Khi Google AdSense được bật, Google và các đối tác có thể dùng cookies hoặc mã nhận dạng để phân phối, đo lường và cá nhân hóa quảng cáo dựa trên lượt truy cập vào VidGrab hoặc các website khác. Người dùng có thể quản lý quảng cáo cá nhân hóa tại <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">Cài đặt quảng cáo Google</a>. VidGrab sẽ triển khai cơ chế đồng ý phù hợp tại các khu vực pháp lý yêu cầu trước khi kích hoạt quảng cáo.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Báo cáo lỗi</h2>
@@ -50,8 +51,9 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Liên hệ</h2>
-                <p>Nếu có câu hỏi về chính sách bảo mật, vui lòng liên hệ qua GitHub Issues.</p>
+                <p>Nếu có câu hỏi về chính sách bảo mật, vui lòng liên hệ qua <a href="https://github.com/anlvdt/vidgrab/issues" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">GitHub Issues</a>.</p>
               </section>
+              <p className="border-t border-[var(--glass-border)] pt-5 text-xs text-[var(--text-muted)]">Cập nhật lần cuối: 15/07/2026.</p>
             </>
           ) : (
             <>
@@ -68,7 +70,8 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Advertising</h2>
-                <p>VidGrab currently does not display ads or load third-party advertising scripts.</p>
+                <p>VidGrab currently does not display ads or load third-party advertising scripts. If advertising is enabled after provider approval, this policy will be updated before advertising scripts become active.</p>
+                <p className="mt-2">When Google AdSense is enabled, Google and its partners may use cookies or identifiers to serve, measure, and personalize ads based on visits to VidGrab or other websites. Users can manage personalized advertising in <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">Google Ad Settings</a>. VidGrab will implement an appropriate consent mechanism in jurisdictions where one is required before enabling ads.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Error Reports</h2>
@@ -76,8 +79,9 @@ export default function PrivacyPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Contact</h2>
-                <p>For privacy-related questions, please reach out via GitHub Issues.</p>
+                <p>For privacy-related questions, please reach out via <a href="https://github.com/anlvdt/vidgrab/issues" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">GitHub Issues</a>.</p>
               </section>
+              <p className="border-t border-[var(--glass-border)] pt-5 text-xs text-[var(--text-muted)]">Last updated: July 15, 2026.</p>
             </>
           )}
         </div>

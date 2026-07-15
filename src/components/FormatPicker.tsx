@@ -41,12 +41,13 @@ interface FormatPickerProps {
 
 type FilterTab = "all" | "video" | "audio";
 
-function formatSize(bytes: number | null): string {
+function formatSize(bytes: number | null, approximate = false): string {
   if (!bytes) return "—";
-  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} B`;
+  const prefix = approximate ? "~" : "";
+  if (bytes >= 1_073_741_824) return `${prefix}${(bytes / 1_073_741_824).toFixed(1)} GB`;
+  if (bytes >= 1_048_576) return `${prefix}${(bytes / 1_048_576).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${prefix}${(bytes / 1024).toFixed(1)} KB`;
+  return `${prefix}${bytes} B`;
 }
 
 const qualityOrder: Record<string, number> = {
@@ -68,7 +69,7 @@ export default function FormatPicker({
   const [clipMode, setClipMode] = useState(false);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const filtered = useMemo(() => {
     // A video-only stream is merged with audio on the server, which pipes the
@@ -186,21 +187,21 @@ export default function FormatPicker({
           {t.audioOnly}
         </button>
 
-        <button
-          onClick={() => setClipMode(!clipMode)}
+          <button
+            onClick={() => setClipMode(!clipMode)}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${clipMode ? "bg-[var(--accent)] text-white" : "glass text-[var(--text-secondary)]"}`}
         >
-          <Film className="w-4 h-4" />
-          {clipMode ? "Clip Mode" : "Clip"}
-        </button>
+            <Film className="w-4 h-4" />
+            {t.clipLabel}
+          </button>
       </div>
 
       {tab === "audio" && <WaveformVisualizer />}
 
       {clipMode && (
-        <div className="flex items-center gap-3 justify-center mb-4">
+        <div className="flex flex-wrap items-center gap-3 justify-center mb-5 glass rounded-xl p-3">
           <div className="flex items-center gap-2">
-            <label htmlFor="clip-start" className="text-xs text-[var(--text-muted)]">Start</label>
+            <label htmlFor="clip-start" className="text-xs text-[var(--text-muted)]">{t.clipStart}</label>
             <input
               id="clip-start"
               type="text"
@@ -211,13 +212,13 @@ export default function FormatPicker({
             />
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="clip-end" className="text-xs text-[var(--text-muted)]">End</label>
+            <label htmlFor="clip-end" className="text-xs text-[var(--text-muted)]">{t.clipEnd}</label>
             <input
               id="clip-end"
               type="text"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              placeholder="end"
+              placeholder={t.clipEndPlaceholder}
               className="w-20 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-sm border border-[var(--border)] focus:border-[var(--accent)] outline-none"
             />
           </div>
@@ -247,10 +248,10 @@ export default function FormatPicker({
         {displayed.map((format, i) => (
           <div
             key={format.formatId}
-            className="flex items-center justify-between glass-card rounded-xl px-4 py-3 group"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 glass-card rounded-xl px-4 py-3 group"
             style={{ animationDelay: `${i * 0.05}s` }}
           >
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
               <span
                 className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                   format.hasVideo ? "badge-video" : "badge-audio"
@@ -272,17 +273,25 @@ export default function FormatPicker({
                   {format.fps}fps
                 </span>
               )}
-            </div>
-            <div className="flex items-center gap-4">
               <span className="text-xs text-[var(--text-secondary)]">
-                {formatSize(format.filesize || format.filesizeApprox)}
+                {!format.hasVideo
+                  ? t.formatAudio
+                  : format.hasAudio
+                    ? t.formatProgressive
+                    : t.formatMerged}
+              </span>
+            </div>
+            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+              <span className="text-xs text-[var(--text-secondary)]">
+                {formatSize(format.filesize || format.filesizeApprox, !format.filesize && !!format.filesizeApprox)}
               </span>
               <button
                 onClick={() => handleDownload(format)}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-white transition-all group-hover:text-[var(--accent-light)]"
-                aria-label={`Download ${format.quality} ${format.ext}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--accent-light)] bg-[var(--accent)]/10 hover:bg-[var(--accent)] hover:text-white transition-all"
+                aria-label={`${t.downloadLabel} ${format.quality} ${format.ext}`}
               >
                 <Download className="w-4 h-4" />
+                {t.downloadLabel}
               </button>
             </div>
           </div>
@@ -296,6 +305,15 @@ export default function FormatPicker({
         >
           <ChevronDown className="w-4 h-4" />
           {filtered.length - 8} {t.showMore}
+        </button>
+      )}
+      {showAll && filtered.length > 8 && (
+        <button
+          onClick={() => setShowAll(false)}
+          className="flex items-center gap-2 mx-auto mt-4 text-sm text-[var(--text-secondary)] hover:text-[var(--accent-light)] transition-colors"
+        >
+          <ChevronDown className="w-4 h-4 rotate-180" />
+          {locale === "vi" ? "Thu gọn định dạng" : "Show fewer formats"}
         </button>
       )}
     </div>

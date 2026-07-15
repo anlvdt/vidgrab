@@ -4,8 +4,7 @@ FROM node:22.16.0-alpine3.21 AS base
 # pytubefix is the secondary YouTube extractor (fallback when yt-dlp fails).
 RUN apk add --no-cache python3 py3-pip ffmpeg curl \
     && pip3 install --break-system-packages \
-        yt-dlp==2026.3.17 \
-        yt-dlp-ejs==0.7.0 \
+        "yt-dlp[default,curl-cffi]==2026.7.4" \
         bgutil-ytdlp-pot-provider==1.2.2 \
         pytubefix==10.9.0
 

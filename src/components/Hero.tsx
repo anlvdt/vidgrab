@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, Zap, List, Loader2, Clipboard } from "lucide-react";
+import {
+  Search,
+  Zap,
+  List,
+  Loader2,
+  Clipboard,
+  ShieldCheck,
+  History,
+  FileCheck2,
+} from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import LangToggle from "./LangToggle";
-import TypingHeadline from "./TypingHeadline";
 import PlatformBadge from "./PlatformBadge";
 import { useI18n } from "@/lib/i18n";
 import { sanitizeUrl } from "@/lib/url-sanitizer";
@@ -17,38 +25,16 @@ interface HeroProps {
 export default function Hero({ onFetch, loading }: HeroProps) {
   const [url, setUrl] = useState("");
   const [playlistMode, setPlaylistMode] = useState(false);
-  const [pasteHint, setPasteHint] = useState(false);
+  const [invalidUrl, setInvalidUrl] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
-
-  const handleFocus = () => {
-    if (!url.trim()) {
-      setPasteHint(true);
-      // Arroxy-style: auto-detect YouTube URL from clipboard on focus
-      autoDetectClipboard();
-    }
-  };
-  const handleBlur = () => setPasteHint(false);
-
-  // Arroxy's ClipboardWatcher: auto-detect video URLs when input is focused
-  const autoDetectClipboard = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text && /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|twitter\.com|x\.com|facebook\.com|reddit\.com)/i.test(text.trim())) {
-        setUrl(text.trim());
-        setPasteHint(false);
-      }
-    } catch {
-      // Clipboard permission denied — silent fail
-    }
-  };
 
   const handleSmartPaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (text && /^https?:\/\/.+/i.test(text.trim())) {
         setUrl(text.trim());
-        setPasteHint(false);
+        setInvalidUrl(false);
         inputRef.current?.focus();
       }
     } catch {
@@ -58,18 +44,22 @@ export default function Hero({ onFetch, loading }: HeroProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url.trim()) {
-      // Clean URL before submitting (Arroxy's auto-clean feature)
-      const cleanedUrl = sanitizeUrl(url.trim());
-      setUrl(cleanedUrl);
-      onFetch(cleanedUrl, playlistMode);
+    const value = url.trim();
+    if (!/^https?:\/\/[^\s]+$/i.test(value)) {
+      setInvalidUrl(true);
+      inputRef.current?.focus();
+      return;
     }
+    const cleanedUrl = sanitizeUrl(value);
+    setInvalidUrl(false);
+    setUrl(cleanedUrl);
+    onFetch(cleanedUrl, playlistMode);
   };
 
   return (
-    <section className="relative pt-6 pb-16 px-4">
+    <section className="relative pt-5 pb-12 sm:pb-16 px-4">
       {/* Top bar */}
-      <nav className="max-w-4xl mx-auto flex items-center justify-between mb-14">
+      <nav className="max-w-5xl mx-auto flex items-center justify-between mb-10 sm:mb-16">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg">
             <Zap className="w-4.5 h-4.5 text-white" />
@@ -84,16 +74,16 @@ export default function Hero({ onFetch, loading }: HeroProps) {
         </div>
       </nav>
 
-      <div className="relative max-w-3xl mx-auto text-center">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 leading-tight tracking-tight">
-          {t.heroTitle} <TypingHeadline />
+      <div className="relative max-w-4xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-5 rounded-full glass text-xs font-medium text-[var(--accent-light)]">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          {t.heroOtherSites}
+        </div>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 leading-[1.08] tracking-[-0.035em] text-balance">
+          {t.heroTitle}
         </h1>
-        <p className="text-[var(--text-secondary)] text-lg mb-4 max-w-xl mx-auto leading-relaxed">
-          {t.heroSubtitle}{" "}
-          <span className="text-[var(--accent-light)] font-medium">
-            {t.heroOtherSites}
-          </span>
-          .
+        <p className="text-[var(--text-secondary)] text-base sm:text-lg mb-7 max-w-2xl mx-auto leading-relaxed text-balance">
+          {t.heroSubtitle}
         </p>
 
         {url.trim() && (
@@ -102,41 +92,47 @@ export default function Hero({ onFetch, loading }: HeroProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} noValidate className="relative max-w-3xl mx-auto" aria-busy={loading}>
           <div
-            className={`glow-input glass flex items-center gap-3 rounded-2xl px-5 py-4 ${
+            className={`glow-input glass flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 rounded-2xl p-2.5 sm:pl-5 ${
               url.trim() ? "pulse-glow" : ""
             }`}
           >
-            <Search className="w-5 h-5 text-[var(--text-muted)] shrink-0" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder={t.heroPlaceholder}
-              className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-base"
-              aria-label="Video URL input"
-            />
-
-            {!url.trim() && (
+            <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 sm:px-0">
+              <Search className="w-5 h-5 text-[var(--text-muted)] shrink-0" />
+              <input
+                ref={inputRef}
+                type="url"
+                inputMode="url"
+                enterKeyHint="go"
+                autoComplete="off"
+                spellCheck={false}
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (invalidUrl) setInvalidUrl(false);
+                }}
+                placeholder={t.heroPlaceholder}
+                className="min-w-0 flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-base"
+                aria-label={t.heroPlaceholder}
+                aria-invalid={invalidUrl}
+                aria-describedby="url-help"
+              />
               <button
                 type="button"
                 onClick={handleSmartPaste}
-                className="shrink-0 p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-light)] hover:bg-[var(--glass-bg)] transition-all"
-                title="Paste from clipboard"
-                aria-label="Paste from clipboard"
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-light)] hover:bg-[var(--glass-bg)] transition-all"
+                aria-label={t.pasteButton}
               >
                 <Clipboard className="w-4 h-4" />
+                <span className="hidden md:inline">{t.pasteButton}</span>
               </button>
-            )}
+            </div>
 
             <button
               type="submit"
               disabled={loading || !url.trim()}
-              className="shrink-0 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+              className="shrink-0 min-h-12 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-secondary)] text-white font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               style={{
                 boxShadow: url.trim()
                   ? "0 4px 20px var(--accent-glow)"
@@ -154,11 +150,13 @@ export default function Hero({ onFetch, loading }: HeroProps) {
             </button>
           </div>
 
-          {pasteHint && !url.trim() && (
-            <p className="text-xs text-[var(--text-muted)] mt-2 animate-pulse">
-              {t.heroPasteHint}
-            </p>
-          )}
+          <p
+            id="url-help"
+            className={`text-xs mt-2.5 ${invalidUrl ? "text-[var(--danger)]" : "text-[var(--text-muted)]"}`}
+            role={invalidUrl ? "alert" : undefined}
+          >
+            {invalidUrl ? t.heroInvalidUrl : t.heroPasteHint}
+          </p>
 
           <div className="flex items-center justify-center gap-3 mt-5">
             <button
@@ -176,18 +174,31 @@ export default function Hero({ onFetch, loading }: HeroProps) {
           </div>
         </form>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-2xl mx-auto">
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-6 text-xs text-[var(--text-secondary)]">
+          {[
+            { icon: ShieldCheck, label: t.heroTrustPrivate },
+            { icon: History, label: t.heroTrustHistory },
+            { icon: FileCheck2, label: t.heroTrustFilename },
+          ].map(({ icon: Icon, label }) => (
+            <span key={label} className="inline-flex items-center gap-1.5">
+              <Icon className="w-3.5 h-3.5 text-[var(--success)]" />
+              {label}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-12 max-w-3xl mx-auto">
           {[
             { step: "1", title: t.heroStep1Title, desc: t.heroStep1Desc },
             { step: "2", title: t.heroStep2Title, desc: t.heroStep2Desc },
             { step: "3", title: t.heroStep3Title, desc: t.heroStep3Desc },
           ].map((item) => (
-            <div key={item.step} className="text-center group">
-              <div className="w-11 h-11 rounded-full glass flex items-center justify-center mx-auto mb-3 text-[var(--accent-light)] font-bold text-sm group-hover:scale-110 transition-transform">
+            <div key={item.step} className="text-left glass-card rounded-2xl p-4 group">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center mb-3 text-[var(--accent-light)] font-bold text-xs">
                 {item.step}
               </div>
-              <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
-              <p className="text-[var(--text-secondary)] text-xs">
+              <h3 className="font-semibold text-sm mb-1.5">{item.title}</h3>
+              <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
                 {item.desc}
               </p>
             </div>

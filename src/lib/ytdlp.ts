@@ -41,6 +41,11 @@ const POT_BASE_URL = process.env.BGUTIL_POT_BASE_URL;
 // Whether a PO-token provider is configured — selects the format-rich client
 // ladder (tv,web_safari) over the token-free one (android_vr).
 const HAS_POT = !!POT_BASE_URL;
+// TLS/browser impersonation is useful for Cloudflare-protected extractors, but
+// yt-dlp warns against forcing it globally because it can reduce stability.
+// We therefore enable it only on a generic extractor retry. Set to "off" to
+// disable or to a concrete yt-dlp target such as chrome:windows-10.
+const IMPERSONATE_TARGET = process.env.YTDLP_IMPERSONATE || "chrome";
 const CHROME_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
 
@@ -184,7 +189,11 @@ function baseArgs(opts?: DownloadOptions, sourceUrl?: string): string[] {
   }
 
   args.push("--retries", "5");
-  args.push("--extractor-retries", "3");
+  args.push("--extractor-retries", "5");
+  args.push("--file-access-retries", "3");
+  args.push("--retry-sleep", "http:exp=1:8");
+  args.push("--retry-sleep", "fragment:exp=1:10");
+  args.push("--retry-sleep", "extractor:linear=1:5:1");
   args.push("--socket-timeout", "30");
   args.push("--user-agent", CHROME_UA);
 
@@ -217,6 +226,13 @@ function baseArgs(opts?: DownloadOptions, sourceUrl?: string): string[] {
   }
 
   return args;
+}
+
+/** Add expensive anti-bot measures only after the normal request failed. */
+function addGenericRetryArgs(args: string[], attempt: number, isYouTube: boolean): void {
+  if (!isYouTube && attempt > 0 && IMPERSONATE_TARGET !== "off") {
+    args.push("--impersonate", IMPERSONATE_TARGET);
+  }
 }
 
 // ─── Format Helpers ──────────────────────────────────────────
@@ -328,6 +344,7 @@ export async function getVideoInfo(
         "--no-playlist",
         "--skip-download",
       ];
+      addGenericRetryArgs(args, attempt, isYT);
 
       // PoT-aware deterministic player-client ladder
       if (isYT) {
@@ -605,6 +622,7 @@ export function spawnDownloadWithRetry(
   let aborted = false;
   let firstByteSeen = false;
   let controllerSettled = false;
+  let suppressTranscoderFailure = false;
 
   let resolveFirstByte!: () => void;
   let rejectFirstByte!: (err: DownloadFailure) => void;
@@ -652,7 +670,8 @@ export function spawnDownloadWithRetry(
         controllerSettled = true;
         controller.error(failure);
       };
-      const killTranscoder = () => {
+      const killTranscoder = (suppressFailure = false) => {
+        if (suppressFailure) suppressTranscoderFailure = true;
         if (currentTranscoder) {
           try { currentTranscoder.kill("SIGKILL"); } catch { /* already gone */ }
           currentTranscoder = null;
@@ -666,6 +685,7 @@ export function spawnDownloadWithRetry(
         }
 
         const args = baseArgs(opts, cleanUrl);
+        addGenericRetryArgs(args, currentAttempt, isYT);
 
         // Adaptive fragment count
         const frags =
@@ -739,14 +759,13 @@ export function spawnDownloadWithRetry(
         const proc = spawn(YTDLP_BIN, args);
         currentProc = proc;
         let stderrBuf = "";
+        suppressTranscoderFailure = false;
 
-        // For audio downloads we transcode yt-dlp's raw best-audio stream to a
-        // real MP3 through ffmpeg (yt-dlp's own --extract-audio is a no-op on a
-        // stdout pipe). The deliverable bytes — and hence firstByte — come from
-        // ffmpeg's stdout, not yt-dlp's. For video, yt-dlp's stdout is served
-        // directly as before.
-        if (audioOnly) {
-          const transcoder = spawn(FFMPEG_BIN, [
+        // Normalize every stdout download through ffmpeg. Audio becomes a real
+        // MP3; video becomes fragmented MP4. Without this remux, yt-dlp emits
+        // MPEG-TS for merged stdout while the route names the file .mp4.
+        const transcoderArgs = audioOnly
+          ? [
             "-loglevel", "error",
             "-i", "pipe:0",
             "-vn",
@@ -754,50 +773,65 @@ export function spawnDownloadWithRetry(
             "-q:a", "2", // VBR ~190 kbps, transparent quality
             "-f", "mp3",
             "pipe:1",
-          ]);
-          currentTranscoder = transcoder;
+          ]
+          : [
+            "-loglevel", "error",
+            "-i", "pipe:0",
+            "-map", "0:v:0",
+            "-map", "0:a:0?",
+            "-c", "copy",
+            "-bsf:a", "aac_adtstoasc",
+            "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+            "-f", "mp4",
+            "pipe:1",
+          ];
+        const transcoder = spawn(FFMPEG_BIN, transcoderArgs);
+        currentTranscoder = transcoder;
+        let transcoderStderr = "";
 
-          proc.stdout.pipe(transcoder.stdin);
-          // yt-dlp dying before ffmpeg drains its input yields EPIPE here; the
-          // real failure is surfaced via yt-dlp's close handler, so swallow it.
-          transcoder.stdin.on("error", () => {});
-
-          transcoder.stdout.on("data", (chunk: Buffer) => {
-            firstByteSeen = true;
-            resolveFirstByte();
-            controller.enqueue(new Uint8Array(chunk));
-          });
-          transcoder.on("error", (err) => {
-            const failure = makeFailure(
-              err.message || "ffmpeg transcode error",
-              err.message || "",
-              firstByteSeen ? null : "networkError",
-              null,
-              firstByteSeen
-            );
-            rejectFirstByte(failure);
-            errorController(failure);
-          });
-          transcoder.on("close", (tcode) => {
-            if (aborted) return;
-            currentTranscoder = null;
-            if (tcode === 0) {
-              closeController();
-            } else if (firstByteSeen) {
-              // Transcode died after bytes shipped — can't recover a partial.
-              errorController(
-                makeFailure(`Transcode interrupted (code ${tcode})`, "", null, tcode, true)
-              );
-            }
-            // Pre-byte ffmpeg failure: let yt-dlp's close handler drive retry.
-          });
-        } else {
-          proc.stdout.on("data", (chunk: Buffer) => {
-            firstByteSeen = true;
-            resolveFirstByte();
-            controller.enqueue(new Uint8Array(chunk));
-          });
-        }
+        proc.stdout.pipe(transcoder.stdin);
+        transcoder.stdin.on("error", () => {});
+        transcoder.stderr.on("data", (data: Buffer) => {
+          transcoderStderr += data.toString();
+        });
+        transcoder.stdout.on("data", (chunk: Buffer) => {
+          firstByteSeen = true;
+          resolveFirstByte();
+          controller.enqueue(new Uint8Array(chunk));
+        });
+        transcoder.on("error", (err) => {
+          if (aborted || suppressTranscoderFailure) return;
+          aborted = true;
+          try { proc.kill("SIGTERM"); } catch { /* already gone */ }
+          const failure = makeFailure(
+            err.message || "ffmpeg processing error",
+            err.message || "",
+            firstByteSeen ? null : "networkError",
+            null,
+            firstByteSeen
+          );
+          rejectFirstByte(failure);
+          errorController(failure);
+        });
+        transcoder.on("close", (tcode) => {
+          currentTranscoder = null;
+          if (aborted || suppressTranscoderFailure) return;
+          if (tcode === 0) {
+            closeController();
+            return;
+          }
+          aborted = true;
+          try { proc.kill("SIGTERM"); } catch { /* already gone */ }
+          const failure = makeFailure(
+            extractLastError(transcoderStderr) || `Media processing interrupted (code ${tcode})`,
+            transcoderStderr,
+            firstByteSeen ? null : "formatUnavailable",
+            tcode,
+            firstByteSeen
+          );
+          rejectFirstByte(failure);
+          errorController(failure);
+        });
 
         proc.stderr.on("data", (data: Buffer) => {
           stderrBuf += data.toString();
@@ -806,17 +840,15 @@ export function spawnDownloadWithRetry(
         proc.on("close", (code) => {
           if (aborted) return;
 
-          // Success is exit code 0 only. For audio, yt-dlp finishing just means
-          // it's done feeding ffmpeg — the transcoder's close handler closes the
-          // controller once the MP3 is fully flushed.
+          // Success means yt-dlp is done feeding ffmpeg. The transcoder closes
+          // the response after the MP3/fMP4 output is fully flushed.
           if (code === 0) {
-            if (!audioOnly) closeController();
             return;
           }
 
           // yt-dlp failed — tear down the transcoder so it doesn't emit a
           // truncated MP3 or linger.
-          killTranscoder();
+          killTranscoder(true);
 
           const signal = classifyStderr(stderrBuf);
           if (signal === 'rateLimit') {
@@ -873,7 +905,7 @@ export function spawnDownloadWithRetry(
 
         proc.on("error", (err) => {
           console.error("yt-dlp process error:", err);
-          killTranscoder();
+          killTranscoder(true);
           const failure = makeFailure(
             err.message || "yt-dlp process error",
             (err as { message?: string }).message || "",

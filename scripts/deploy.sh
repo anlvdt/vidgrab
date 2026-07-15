@@ -85,6 +85,10 @@ rm -rf "$TMP_RUNTIME"
 curl -fsSL "$YTDLP_BIN_URL" -o "$RUNTIME_DIR/bin/yt-dlp.py"
 cat > "$RUNTIME_DIR/bin/yt-dlp" <<'EOF'
 #!/bin/sh
+APP_ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+if [ -d "$APP_ROOT/.python" ]; then
+  export PYTHONPATH="$APP_ROOT/.python${PYTHONPATH:+:$PYTHONPATH}"
+fi
 for py in "${PYTHON_BIN:-}" /opt/alt/python312/bin/python3 /opt/alt/python311/bin/python3 /opt/alt/python310/bin/python3 /opt/alt/python39/bin/python3 /usr/local/bin/python3 /usr/bin/python3 python3; do
   [ -n "$py" ] || continue
   if command -v "$py" >/dev/null 2>&1 || [ -x "$py" ]; then
@@ -114,6 +118,14 @@ chmod 755 "$RUNTIME_DIR/bin/yt-dlp" "$RUNTIME_DIR/bin/yt-dlp.py"
   "propcache==0.5.2" \
   "typing-extensions==4.15.0" \
   "yarl==1.24.2"
+"$PACKAGING_PYTHON" -m pip install --quiet --disable-pip-version-check \
+  --platform manylinux2014_x86_64 \
+  --implementation cp \
+  --python-version "$HOSTING_PYTHON_VERSION" \
+  --abi "$HOSTING_PYTHON_ABI" \
+  --only-binary=:all: \
+  --target "$RUNTIME_DIR/python" \
+  "curl_cffi==0.15.0"
 mkdir -p "$RUNTIME_DIR/python/nodejs_wheel/bin"
 cat > "$RUNTIME_DIR/python/nodejs_wheel/__init__.py" <<'EOF'
 """Minimal nodejs_wheel shim for pytubefix on cPanel hosting."""

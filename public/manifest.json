@@ -1,7 +1,7 @@
 {
-  "name": "VidGrab — Video Downloader",
+  "name": "VidGrab — Tải video công khai",
   "short_name": "VidGrab",
-  "description": "Download public videos from popular platforms. Some services may require cookies, region access, or specific source links.",
+  "description": "Phân tích liên kết video công khai và chọn MP4, MP3 hoặc chất lượng tải xuống phù hợp.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#06060e",

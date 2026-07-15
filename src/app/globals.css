@@ -80,6 +80,24 @@ body {
   overflow-x: hidden;
 }
 
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 3px;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
 /* ═══════════════════════════════════════════
    GLASSMORPHISM
    ═══════════════════════════════════════════ */
@@ -296,12 +314,6 @@ main [role="button"] {
 }
 
 /* Compact elements override */
-nav button,
-nav a,
-header button,
-header a,
-.glass-card button,
-.glass-card a,
 footer button,
 footer a,
 .compact-control {
@@ -317,6 +329,16 @@ html {
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Better tap highlight on mobile */

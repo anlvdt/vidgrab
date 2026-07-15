@@ -31,7 +31,7 @@ export default function TermsPage() {
             <>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">1. Giới thiệu</h2>
-                <p>VidGrab là công cụ truy xuất nội dung công khai từ các nền tảng bên thứ ba. VidGrab không lưu trữ, host, hoặc phân phối bất kỳ nội dung nào trên máy chủ của mình.</p>
+                <p>VidGrab là công cụ độc lập xử lý theo yêu cầu các liên kết media công khai do người dùng cung cấp. VidGrab không thuộc, không được tài trợ hoặc chứng thực bởi các nền tảng nguồn và không duy trì danh mục media để tìm kiếm hoặc phát lại.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">2. Trách nhiệm người dùng</h2>
@@ -45,8 +45,8 @@ export default function TermsPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">3. Bản quyền</h2>
-                <p>VidGrab tôn trọng quyền sở hữu trí tuệ. Công cụ này hoạt động tương tự như chức năng &quot;Lưu video&quot; có sẵn trên các nền tảng, hoặc tính năng lưu trang của trình duyệt. VidGrab không phá vỡ bất kỳ biện pháp bảo vệ kỹ thuật nào (DRM).</p>
-                <p className="mt-2">Nếu bạn là chủ sở hữu nội dung và muốn yêu cầu gỡ bỏ, vui lòng liên hệ với chúng tôi.</p>
+                <p>VidGrab tôn trọng quyền sở hữu trí tuệ và không vượt DRM, paywall, cài đặt riêng tư hoặc cơ chế kiểm soát truy cập. Khả năng truy cập một URL công khai không đồng nghĩa với quyền sao chép nội dung.</p>
+                <p className="mt-2">Nếu bạn là chủ sở hữu nội dung và muốn báo cáo vấn đề, vui lòng liên hệ qua <a href="https://github.com/anlvdt/vidgrab/issues" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">GitHub Issues</a>.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">4. Miễn trừ trách nhiệm</h2>
@@ -56,12 +56,13 @@ export default function TermsPage() {
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">5. Nội dung bị cấm</h2>
                 <p>Nghiêm cấm sử dụng VidGrab để tải nội dung vi phạm pháp luật, bao gồm nhưng không giới hạn: nội dung có bản quyền mà không có sự cho phép, nội dung bất hợp pháp, hoặc nội dung vi phạm quyền riêng tư của người khác.</p>
               </section>
+              <p className="border-t border-[var(--glass-border)] pt-5 text-xs text-[var(--text-muted)]">Cập nhật lần cuối: 15/07/2026.</p>
             </>
           ) : (
             <>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">1. Introduction</h2>
-                <p>VidGrab is a tool that retrieves publicly available content from third-party platforms. VidGrab does not store, host, or distribute any content on its servers.</p>
+                <p>VidGrab is an independent tool that processes user-submitted public media links on demand. It is not owned, sponsored, or endorsed by source platforms and does not maintain a searchable or playable media catalog.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">2. User Responsibility</h2>
@@ -75,8 +76,8 @@ export default function TermsPage() {
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">3. Copyright</h2>
-                <p>VidGrab respects intellectual property rights. This tool functions similarly to the built-in &quot;Save video&quot; features on platforms, or browser page-saving functionality. VidGrab does not circumvent any technical protection measures (DRM).</p>
-                <p className="mt-2">If you are a content owner and wish to request removal, please contact us.</p>
+                <p>VidGrab respects intellectual property rights and does not bypass DRM, paywalls, privacy settings, or access controls. Technical access to a public URL does not itself grant permission to copy its content.</p>
+                <p className="mt-2">If you are a content owner and wish to report a concern, please contact us through <a href="https://github.com/anlvdt/vidgrab/issues" target="_blank" rel="noopener noreferrer" className="text-[var(--accent-light)] hover:text-[var(--accent)]">GitHub Issues</a>.</p>
               </section>
               <section>
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">4. Disclaimer</h2>
@@ -86,6 +87,7 @@ export default function TermsPage() {
                 <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">5. Prohibited Use</h2>
                 <p>It is strictly prohibited to use VidGrab to download content that violates the law, including but not limited to: copyrighted content without permission, illegal content, or content that violates the privacy of others.</p>
               </section>
+              <p className="border-t border-[var(--glass-border)] pt-5 text-xs text-[var(--text-muted)]">Last updated: July 15, 2026.</p>
             </>
           )}
         </div>
